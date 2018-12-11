@@ -1,0 +1,23 @@
+version: '3.2'
+
+services:
+
+  django_web:
+    labels:
+      com.example.service: "web"
+      com.example.description: "Use for the main web process"
+    build:
+      context: ./activityChallengeApi/docker_compose/django/
+      dockerfile: Dockerfile
+      args:
+        requirements: requirements/development.txt
+    image: activity_challenge_api_django_web:1.0
+    depends_on:
+      - db
+    command: ["./activityChallengeApi/docker_compose/django/wait_for_postgres.sh"]
+    ports:
+      - "8000:8000"
+    environment:
+      PRODUCTION: 'false'
+    volumes:
+      - .:/app

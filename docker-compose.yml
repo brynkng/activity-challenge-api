@@ -1,17 +1,21 @@
-version: '2'
+version: '3.2'
 
 services:
   db:
+    restart: always
     image: postgres
-    ports:
-      - "5432:5432"
-  web:
-    build: .
-    command: python3 manage.py runserver 0.0.0.0:5000
-    env_file: .env.local
+    container_name: activitychallenge_db
     volumes:
-      - .:/code
+      - type: volume
+        source: dbdata
+        target: /pg_data
     ports:
-      - "5000:5000"
-    depends_on:
-      - db
+      - "8001:5432"
+  django_web:
+    container_name: django_web
+    environment: 
+      - FITBIT_CLIENT_SECRET
+      - PORT
+
+volumes:
+  dbdata:
