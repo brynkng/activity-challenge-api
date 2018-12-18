@@ -145,7 +145,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-if os.environ.get('PRODUCTION') == 'true':
+if os.environ.get('PRODUCTION') != 'true':
     print('USING PROD DB')
     import django_heroku
     import dj_database_url
@@ -169,4 +169,4 @@ else:
         }
     }
 
-    INSTALLED_APPS.append('django_extensions')
+    # INSTALLED_APPS.append('django_extensions')

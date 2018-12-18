@@ -13,9 +13,10 @@ services:
     image: activity_challenge_api_django_web:1.0
     depends_on:
       - db
-    command: ["./docker_compose/django/wait_for_postgres.sh"]
+    command: ["./activityChallengeApi/docker_compose/django/wait_for_postgres.sh"]
     environment:
       PRODUCTION: 'true'
+      PORT: 8000
     volumes:
       - .:/app
   nginx:

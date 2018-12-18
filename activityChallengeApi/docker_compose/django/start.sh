@@ -27,9 +27,11 @@ function start_production() {
 
     python manage.py collectstatic --noinput
     
-    gunicorn activityChallengeApi.wsgi:application \
-    --bind 0.0.0.0:$PORT \
-    --workers 3
+    # gunicorn activityChallengeApi.wsgi:application \
+    # --bind 0.0.0.0:$PORT \
+    # --workers 3
+
+    gunicorn activityChallengeApi.wsgi -w 4 -b 0.0.0.0:8000 --chdir=/app
 }
 
 if [ ${PRODUCTION} == "true" ]; then
