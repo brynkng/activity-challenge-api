@@ -17,6 +17,7 @@ function manage_app () {
 function start_development() {
     # use django runserver as development server here.
     manage_app
+    npm run dev
 
     while true; do
         echo "Restarting django run server!"
@@ -28,6 +29,7 @@ function start_development() {
 function start_production() {
     # use gunicorn for production server here
     manage_app
+    npm run build
 
     python manage.py collectstatic --noinput
     
