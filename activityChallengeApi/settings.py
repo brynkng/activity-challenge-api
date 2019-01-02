@@ -29,7 +29,7 @@ SECRET_KEY = '5jg(re3_gu*_!q9n3%qvlq&z)p*102%+gd==@m_u74854pf31g'
 if os.environ.get('PRODUCTION') != 'true':
     DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'https://activity-challenge-api.herokuapp.com/']
+ALLOWED_HOSTS = ['localhost', 'https://activity-challenge-api.herokuapp.com/', '0.0.0.0', '127.0.0.1']
 
 
 # Application definition
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -145,7 +146,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-if os.environ.get('PRODUCTION') != 'true':
+if os.environ.get('PRODUCTION') == 'true':
     print('USING PROD DB')
     import django_heroku
     import dj_database_url
@@ -169,4 +170,4 @@ else:
         }
     }
 
-    # INSTALLED_APPS.append('django_extensions')
+    INSTALLED_APPS.append('django_extensions')

@@ -1,7 +1,7 @@
 version: '3.2'
 
 services:
-  django_web:
+  web:
     labels:
       com.example.service: "web"
       com.example.description: "Use for the main web process"
@@ -13,19 +13,11 @@ services:
     image: activity_challenge_api_django_web:1.0
     depends_on:
       - db
-    command: ["./activityChallengeApi/docker_compose/django/wait_for_postgres.sh"]
+    command: ["./activityChallengeApi/docker_compose/django/start.sh"]
     environment:
       PRODUCTION: 'true'
       PORT: 8000
     volumes:
       - .:/app
-  nginx:
-    restart: always
-    container_name: nginx_server
-    build:
-      context: ./activityChallengeApi/docker_compose/nginx/
-      dockerfile: Dockerfile
-    depends_on:
-      - django_web
     ports:
-      - "0.0.0.0:80:80"
+      - "8000:8000"

@@ -11,7 +11,7 @@ services:
         target: /pg_data
     ports:
       - "8001:5432"
-  django_web:
+  web:
     container_name: django_web
     environment: 
       - FITBIT_CLIENT_SECRET

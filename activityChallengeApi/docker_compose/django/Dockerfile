@@ -18,13 +18,13 @@ ADD . /app/
 WORKDIR /app
 
 # create user and add to docker group
-RUN adduser --disabled-password --gecos '' activitychallenge
-RUN groupadd docker
-RUN usermod -aG docker activitychallenge
+# RUN adduser --disabled-password --gecos '' activitychallenge
+# RUN groupadd docker
+# RUN usermod -aG docker activitychallenge
 
-# grant newly created user permissions on essential files
-RUN chown -R activitychallenge:$(id -gn activitychallenge) ~/
-RUN chown -R activitychallenge:$(id -gn activitychallenge) /app/
+# # grant newly created user permissions on essential files
+# RUN chown -R activitychallenge:$(id -gn activitychallenge) ~/
+# RUN chown -R activitychallenge:$(id -gn activitychallenge) /app/
 
-# change user to newly created user
-USER activitychallenge
+# # change user to newly created user
+# USER activitychallenge

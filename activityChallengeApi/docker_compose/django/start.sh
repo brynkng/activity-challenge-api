@@ -18,7 +18,11 @@ function start_development() {
     # use django runserver as development server here.
     manage_app
 
-    python manage.py runserver_plus 0.0.0.0:8000
+    while true; do
+        echo "Restarting django run server!"
+        python manage.py runserver_plus 0.0.0.0:5000
+        sleep 2
+    done
 }
 
 function start_production() {
@@ -27,11 +31,7 @@ function start_production() {
 
     python manage.py collectstatic --noinput
     
-    # gunicorn activityChallengeApi.wsgi:application \
-    # --bind 0.0.0.0:$PORT \
-    # --workers 3
-
-    gunicorn activityChallengeApi.wsgi -w 4 -b 0.0.0.0:8000 --chdir=/app
+    gunicorn activityChallengeApi.wsgi:application -w 4 -b 0.0.0.0:$PORT --chdir=/app
 }
 
 if [ ${PRODUCTION} == "true" ]; then

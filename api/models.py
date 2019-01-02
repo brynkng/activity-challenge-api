@@ -31,12 +31,16 @@ class Competition(models.Model):
         default=DAILY,
     )
 
-    start = models.DateTimeField()
+    start = models.DateField()
+
+    length = models.IntegerField(help_text="e.g. Daily * 5 length = 5 days")
+
+    name = models.CharField(max_length=255)
 
     point_system = models.ForeignKey(PointSystem, on_delete=models.CASCADE, default=1)
     
     def __str__(self):
-        return f"{dict(self.COMPETITION_TYPES).get(self.type)} starting on {self.start}"
+        return f"{self.name}"
 
 
 class Profile(models.Model):
@@ -46,7 +50,7 @@ class Profile(models.Model):
     competitions = models.ManyToManyField(Competition)
 
     def __str__(self):
-        return f"tagline: {self.tagline} user:{user.id}"
+        return f"Tagline: {self.tagline} User: {self.user.username}"
 
 
 #Signals
