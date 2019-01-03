@@ -1,23 +1,23 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import {Route, Switch, BrowserRouter} from "react-router-dom";
-import Home from "./Home";
+import {Route, Switch, BrowserRouter, HashRouter} from "react-router-dom";
+import Layout from "./Layout";
 import {CookiesProvider} from 'react-cookie';
 
 
 const App = () => (
 
-    <BrowserRouter>
+    <HashRouter>
         <CookiesProvider>
             <main>
                 {/*<DataProvider endpoint="api/competitions/" render={data => <Table data={data}/>}/>*/}
                 <Switch>
                     {/*<Route path="/authenticate" component={Auth}/>*/}
-                    <Route path="/" component={Home}/>
+                    <Route path="/" component={Layout}/>
                 </Switch>
             </main>
         </CookiesProvider>
-    </BrowserRouter>
+    </HashRouter>
 );
 
 const wrapper = document.getElementById("app");

@@ -1,8 +1,9 @@
 import React from "react";
-import { withStyles } from '@material-ui/core/styles';
+import {withStyles} from '@material-ui/core/styles';
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
-import Link from "react-router-dom/es/Link";
+import Link from "react-router-dom/Link";
+import Typography from "@material-ui/core/Typography";
 
 const styles = theme => ({
     container: {
@@ -26,11 +27,11 @@ class Login extends React.Component {
     };
 
     render() {
-        const { classes } = this.props;
+        const {classes} = this.props;
 
         return (
             <div className="login">
-                <h2>LOGIN</h2>
+                <Typography variant="headline" color="inherit">LOGIN</Typography>
 
                 <form className={classes.container} onSubmit={this.handleSubmit}>
                     <TextField

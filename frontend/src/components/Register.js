@@ -3,6 +3,7 @@ import {withStyles} from '@material-ui/core/styles';
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import axios from '../axios';
+import Typography from "@material-ui/core/Typography";
 
 const styles = theme => ({
     container: {},
@@ -47,7 +48,7 @@ class Register extends React.Component {
 
         return (
             <div className="register">
-                <h2>REGISTER</h2>
+                <Typography variant="headline" color="inherit">REGISTER</Typography>
 
                 <form className={classes.container} onSubmit={this.handleSubmit}>
                     <TextField
