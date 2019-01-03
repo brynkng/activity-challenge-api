@@ -6,11 +6,23 @@ import os
 from .models import Competition
 from api.serializers import CompetitionSerializer
 from rest_framework import generics
+from django.contrib.auth import get_user_model
+from rest_framework import permissions
+from .serializers import UserSerializer
 
 
 class CompetitionListCreate(generics.ListCreateAPIView):
     queryset = Competition.objects.all()
     serializer_class = CompetitionSerializer
+
+class CreateUserView(generics.CreateAPIView):
+    model = get_user_model()
+    permission_classes = [
+        permissions.AllowAny
+    ]
+    serializer_class = UserSerializer
+
+
 
 # def index(request):
 #     # logger = logging.getLogger(__name__)
@@ -27,14 +39,6 @@ class CompetitionListCreate(generics.ListCreateAPIView):
 #     }
 #
 #     return HttpResponse(template.render(context, request))
-
-# def competition(request, competition_id):
-#     competition = Competition.objects.filter(pk=competition_id).first()
-
-# return JsonResponse(competition.to_json())
-
-# def competitions(request):
-# return JsonResponse({'competitions': [c.to_json() for c in Competition.objects.all()]})
 
 # homepage/register
 # dashboard/auth fitbit
