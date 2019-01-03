@@ -3,10 +3,11 @@ import cookies from 'cookies-js';
 
 const instance = axios.create();
 
-setAuthHeader();
+instance.defaults.headers.common['Content-Type'] = 'application/json';
 
-export function setAuthHeader() {
-    instance.defaults.headers.common['Content-Type'] = 'application/json';
+setCsrfHeader();
+
+export function setCsrfHeader() {
     instance.defaults.headers.common["X-CSRFToken"] = cookies.get('csrftoken');
 }
 

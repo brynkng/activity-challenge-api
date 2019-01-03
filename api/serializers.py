@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from api.models import Competition
 
+
 class CompetitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competition

@@ -3,6 +3,7 @@ import {withStyles} from '@material-ui/core/styles';
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import axios from '../axios';
+import {login, register} from '../services/auth_api';
 import Typography from "@material-ui/core/Typography";
 
 const styles = theme => ({
@@ -31,10 +32,13 @@ class Register extends React.Component {
             return obj
         }, {});
 
-        axios.post('api/register/', form_values)
+        register(form_values)
             .then(r => {
-                console.log(r)
-                //    do login
+                login(form_values.username, form_values.password).then(r => {
+                    if (r.data.success) {
+                        this.props.handleLoggedIn();
+                    }
+                })
             })
             .catch(r => {
                 let errors = [].concat(...(Object.values(r.response.data))).join(', ');
@@ -107,7 +111,8 @@ class Register extends React.Component {
                         required
                     /><br/>
 
-                    <Button variant="contained" color="primary" type='submit' className={classes.button}>REGISTER</Button>
+                    <Button variant="contained" color="primary" type='submit'
+                            className={classes.button}>REGISTER</Button>
                 </form>
             </div>
         )

@@ -8,13 +8,13 @@ const Auth = (outer_props) => (
         <Route
             path="/"
             exact
-            render={(props) => <Login {...props} showError={outer_props.showError} />}
+            render={(props) => <Login {...outer_props} />}
         />
 
         <Route
             path="/register"
             exact
-            render={(props) => <Register {...props} showError={outer_props.showError} />}
+            render={(props) => <Register {...outer_props} />}
         />
     </>
 );

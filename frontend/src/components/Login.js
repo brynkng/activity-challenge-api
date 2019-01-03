@@ -4,6 +4,8 @@ import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import Link from "react-router-dom/Link";
 import Typography from "@material-ui/core/Typography";
+import {login} from "../services/auth_api";
+import {withRouter} from "react-router";
 
 const styles = theme => ({
     container: {
@@ -21,9 +23,19 @@ const styles = theme => ({
 class Login extends React.Component {
 
     handleSubmit = event => {
-        console.log(event.target.email.value)
-        console.log(event.target.password.value)
         event.preventDefault();
+
+        login(event.target.username.value, event.target.password.value)
+            .then(r => {
+                if (r.data.success) {
+                    this.props.handleLoggedIn();
+                } else {
+                    this.props.showError(r.data.message);
+                }
+            }).catch(r => {
+                this.props.showError(r.response.data.detail);
+                console.log(r)
+            });
     };
 
     render() {
@@ -35,13 +47,12 @@ class Login extends React.Component {
 
                 <form className={classes.container} onSubmit={this.handleSubmit}>
                     <TextField
-                        id="email"
-                        label="Email"
+                        id="username"
+                        label="Username"
                         className={classes.textField}
                         margin="normal"
-                        type="email"
-                        autoComplete="email"
-                        name="email"
+                        type="text"
+                        name="username"
                     />
                     <TextField
                         id="password"
@@ -49,7 +60,6 @@ class Login extends React.Component {
                         className={classes.textField}
                         margin="normal"
                         type="password"
-                        autoComplete="password"
                         name="password"
                     />
 
@@ -62,4 +72,4 @@ class Login extends React.Component {
     }
 }
 
-export default withStyles(styles)(Login);
+export default withRouter(withStyles(styles)(Login));

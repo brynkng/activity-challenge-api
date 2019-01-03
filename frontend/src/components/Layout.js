@@ -7,7 +7,8 @@ import NavBar from "./Navbar";
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
-
+import {loggedIn} from "../services/auth_api";
+import Dashboard from "./Dashboard";
 
 const styles = theme => ({
     root: {
@@ -24,18 +25,24 @@ const styles = theme => ({
 });
 
 class Layout extends React.Component {
+    state = {
+        loggedIn: false,
+        open: false,
+        snackbar_variant: 'success',
+        snackbar_message: ''
+    };
+
+    componentDidMount() {
+        if (!this.state.loggedIn && loggedIn()) {
+            this.setState({loggedIn: true});
+        }
+    }
 
     componentWillReceiveProps(nextProps) {
         if (nextProps.location.state && nextProps.location.state.error) {
             this.showError(nextProps.location.state.error);
         }
     }
-
-    state = {
-        open: false,
-        snackbar_variant: 'success',
-        snackbar_message: ''
-    };
 
     handleClose = (event, reason) => {
         if (reason === 'clickaway') {
@@ -45,6 +52,15 @@ class Layout extends React.Component {
         this.setState({open: false});
     };
 
+    handleLoggedIn = () => {
+        this.props.history.replace('/');
+        this.setState({loggedIn: true});
+    };
+
+    handleLogout = () => {
+        this.props.history.replace('/');
+        this.setState({loggedIn: false});
+    };
 
     showError = (error) => {
         this.setState({open: true, snackbar_variant: 'error', snackbar_message: error});
@@ -59,8 +75,11 @@ class Layout extends React.Component {
                 <Grid item xs={12}>
                     <NavBar/>
                     <Paper className={classes.paper}>
-                        {/*{isLoggedIn() ? <Dashboard showError={this.showError}/> : <Login/>}*/}
-                        <Auth showError={this.showError} foo='bar'/>
+                        {
+                            this.state.loggedIn ?
+                                <Dashboard showError={this.showError} handleLogout={this.handleLogout}/> :
+                                <Auth showError={this.showError} handleLoggedIn={this.handleLoggedIn}/>
+                        }
 
                         <Snackbar
                             anchorOrigin={{
