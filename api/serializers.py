@@ -1,5 +1,5 @@
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from rest_framework import serializers, exceptions
+from django.contrib.auth import get_user_model, authenticate
 from api.models import Competition
 
 
@@ -28,3 +28,21 @@ class UserSerializer(serializers.ModelSerializer):
         model = UserModel
         # Tuple of serialized model fields (see link [2])
         fields = ( "id", "first_name", "last_name", "username", "password", )
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(style={'input_type': 'password'})
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            raise exceptions.ValidationError("User and password not found")
+        elif not user.is_active:
+            raise exceptions.ValidationError("User is inactive")
+        else:
+            return user
