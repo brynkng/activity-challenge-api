@@ -33,4 +33,8 @@ function register(form_values) {
     return axios.post('api/register/', form_values);
 }
 
-export {login, register, loggedIn, logOut};
+function getFitbitData() {
+    return axios.get('api/fitbit_data/')
+}
+
+export {login, register, loggedIn, logOut, getFitbitData};

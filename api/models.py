@@ -46,6 +46,9 @@ class Competition(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     tagline = models.CharField(max_length=250, blank=True)
+    access_token = models.CharField(max_length=500, blank=True)
+    refresh_token = models.CharField(max_length=500, blank=True)
+    token_expiration = models.DateTimeField(blank=True, null=True)
 
     competitions = models.ManyToManyField(Competition)
 

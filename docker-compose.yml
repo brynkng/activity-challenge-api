@@ -15,6 +15,7 @@ services:
     container_name: django_web
     environment: 
       - FITBIT_CLIENT_SECRET
+      - FITBIT_CLIENT_ID
       - PORT
 
 volumes:
