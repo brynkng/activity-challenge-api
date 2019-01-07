@@ -19,6 +19,46 @@ def store_fitbit_auth(code, server_host, profile):
     return {'success': r.get('success', False), 'errors': str(r.get('errors', ''))}
 
 
+def _build_data(profile, access_token):
+    data = {'competitions': []}
+    for competition in profile.competitions.all():
+
+        # TODO do for each friend in competition
+        competition_info = _build_competition_info(competition, access_token)
+
+        data['competitions'].append(competition_info)
+    # caching?
+    # Display details of currently running
+
+    # friends_response = requests.get('https://api.fitbit.com/1/user/-/friends.json', headers=headers).json()
+    # active minutes, heart rate zones, friends
+    return data
+
+
+def _build_competition_info(competition, access_token):
+
+    point_system = competition.point_system
+    headers = {'Authorization': f"Bearer {access_token}"}
+    # TODO return different time series data depending on competition type
+    activity_response = requests.get('https://api.fitbit.com/1/user/-/activities/date/today.json', headers=headers).json()
+
+    summary = activity_response['summary']
+    active_minutes = summary['fairlyActiveMinutes'] + summary['veryActiveMinutes']
+    cardio_zone_minutes = [i['minutes'] for i in summary['heartRateZones'] if i['name'] == 'Cardio'][0]
+    peak_zone_minutes = [i['minutes'] for i in summary['heartRateZones'] if i['name'] == 'Peak'][0]
+    points = (point_system.active_minute_points * active_minutes) + \
+             (point_system.cardio_zone_points * cardio_zone_minutes) + \
+             (point_system.peak_zone_points * peak_zone_minutes)
+    competition_info = {
+        'name': competition.name,
+        'points': points,
+        'active_minutes': active_minutes,
+        'cardio_zone_minutes': cardio_zone_minutes,
+        'peak_zone_minutes': peak_zone_minutes
+    }
+    return competition_info
+
+
 def retrieve_fitbit_data(profile, server_host):
     token_expiration = profile.token_expiration
     access_token = profile.access_token
@@ -34,12 +74,13 @@ def retrieve_fitbit_data(profile, server_host):
     data = {'success': True, 'authorized': authorized}
 
     if authorized:
-        headers = {'Authorization': f"Bearer {access_token}"}
-        response = requests.get('https://api.fitbit.com/1/user/-/activities/date/today.json', headers=headers).json()
-        data['data'] = response
+        try:
+            data['data'] = _build_data(profile, access_token)
 
-        if response.get('errors', None):
-            errors = response.get('errors')
+            if data['data'].get('errors', None):
+                errors = data['data'].get('errors')
+        except AttributeError as err:
+            errors = str(err)
     else:
         data['auth_url'] = _auth_url(server_host)
 
