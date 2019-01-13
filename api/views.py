@@ -3,6 +3,7 @@ import traceback
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from api.custom_errors import ApiError
 from api.services.fitbit_api import retrieve_fitbit_data, store_fitbit_auth, get_competition_friend_list
 from .models import Competition
 from api.serializers import CompetitionSerializer, LoginSerializer
@@ -65,34 +66,16 @@ class LogoutUser(generics.GenericAPIView):
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def fitbit_store_auth(request):
-    r = store_fitbit_auth(request.GET.get('code'), request.get_host(), request.user.profile)
+    try:
+        store_fitbit_auth(request.GET.get('code'), request.get_host(), request.user.profile)
+    except ApiError:
+        traceback.print_exc()
 
-    if r.get('success'):
-        return redirect('/')
-    else:
-        return redirect('/?errors=' + str(r.get('errors', '')))
+    return redirect('/#')
 
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def fitbit_data(request):
-    try:
-        r = retrieve_fitbit_data(request.user.profile, request.get_host())
-        return Response(r)
-    except Exception as error:
-        traceback.print_exc()
-        return Response("Something went wrong, please contact the developer.", status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['GET'])
-@permission_classes((IsAuthenticated,))
-def competition_friend_list(request, competition_id):
-    try:
-        r = get_competition_friend_list(request.user.profile, Competition.objects.filter(id=competition_id).first())
-        return Response(r)
-    except Exception as error:
-        traceback.print_exc()
-        return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
-
-
-
+    r = retrieve_fitbit_data(request.user.profile, request.get_host())
+    return Response(r)

@@ -4,7 +4,7 @@ import traceback
 import requests
 from django.utils.http import urlsafe_base64_encode
 from django.utils import timezone
-from api.custom_errors import AuthError
+from api.custom_errors import ApiAuthError, ApiError
 from api.models import Profile
 
 
@@ -29,9 +29,8 @@ def store_fitbit_auth(code, server_host, profile):
         'redirect_uri': f"http://{server_host}/api/store_fitbit_auth",
         'expires_in': 2592000
     }
-    r = _send_auth_request(profile, data)
 
-    return {'success': r.get('success', False)}
+    return _send_auth_request(profile, data)
 
 
 def get_auth_headers(access_token):
@@ -42,6 +41,7 @@ def get_competition_friend_list(profile, competition):
     friends_response = get_friends(profile)
     fitbit_ids = [f['user']['encodedId'] for f in friends_response]
 
+    # TODO possibly clean this up just working with profile querysets? preload competitions and invitations?
     id_tuples = Profile.objects.filter(fitbit_user_id__in=fitbit_ids).values_list('id', 'fitbit_user_id')
     profile_to_fitbit = {ids[0]: ids[1] for ids in id_tuples}
     fitbit_to_profile = {ids[1]: ids[0] for ids in id_tuples}
@@ -72,13 +72,10 @@ def get_competition_friend_list(profile, competition):
 
 def get_friends(profile):
     response = requests.get('https://api.fitbit.com/1/user/-/friends.json',
-                            headers=get_auth_headers(profile.access_token)).json()
-    print('-' * 100)
-    print(response)
-    if 'errors' in response:
-        raise AuthError(str(response['errors']))
+                            headers=get_auth_headers(profile.access_token))
+    _validate_response(response)
 
-    return response.get('friends', [])
+    return response.json().get('friends', [])
 
 
 def _build_data(profile):
@@ -88,17 +85,18 @@ def _build_data(profile):
 
 def _build_competition_summary(profile, competition):
     friend_list = get_competition_friend_list(profile, competition)
-
     profile_ids = [f['profile_id'] for f in friend_list]
-    token_tuples = Profile.objects.filter(id__in=profile_ids).values_list('id', 'access_token')
-    profile_to_token = {t[0]: t[1] for t in token_tuples}
+    profiles = Profile.objects.filter(id__in=profile_ids)
+
+    def _get_profile(id):
+        return [p for p in profiles if p.id == id][0]
 
     competition_members = [
-        _add_point_details(competition, f, profile.access_token, f['fitbit_id'])
+        _add_point_details(competition, f, profile)
         for f in friend_list if f['in_competition']
     ]
     # competition_members = [
-    #     _add_point_details(competition, f, profile_to_token[f['profile_id']], f['fitbit_id'])
+    #     _add_point_details(competition, f, _get_profile(f['profile_id']))
     #     for f in friend_list if f['in_competition']
     # ]
 
@@ -107,7 +105,7 @@ def _build_competition_summary(profile, competition):
     competition_info = {
         'id': competition.id,
         'name': competition.name,
-        'point_details': _add_point_details(competition, {}, profile.access_token, profile.fitbit_user_id),
+        'point_details': _add_point_details(competition, {}, profile),
         'competition_members': competition_members,
         'invitable_friends': invitable_friends
 
@@ -116,16 +114,18 @@ def _build_competition_summary(profile, competition):
     return competition_info
 
 
-def _add_point_details(competition, starting_data, access_token, fitbit_id):
+def _add_point_details(competition, init_data, profile):
     point_system = competition.point_system
 
-    # activity_response = requests.get(f"https://api.fitbit.com/1/user/{fitbit_id}/activities/date/today.json",
-    #                                  headers=get_auth_headers(access_token)).json()
+    # activity_response = requests.get(f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/date/today.json",
+    #                                  headers=get_auth_headers(profile.access_token))
     activity_response = requests.get(f"https://api.fitbit.com/1/user/-/activities/date/today.json",
-                                     headers=get_auth_headers(access_token)).json()
-    if 'errors' in activity_response:
-        raise AuthError(activity_response['errors'])
+                                     headers=get_auth_headers(profile.access_token))
+    _validate_response(activity_response)
 
+    activity_response = activity_response.json()
+    print('-'*200)
+    print(activity_response)
     if 'summary' in activity_response and 'heartRateZones' in activity_response['summary']:
         summary = activity_response['summary']
 
@@ -138,12 +138,12 @@ def _add_point_details(competition, starting_data, access_token, fitbit_id):
                  (point_system.cardio_zone_points * cardio_zone_minutes) + \
                  (point_system.peak_zone_points * peak_zone_minutes)
 
-        starting_data['points'] = points
-        starting_data['active_minutes'] = active_minutes
-        starting_data['cardio_zone_minutes'] = cardio_zone_minutes
-        starting_data['peak_zone_minutes'] = peak_zone_minutes
+        init_data['points'] = points
+        init_data['active_minutes'] = active_minutes
+        init_data['cardio_zone_minutes'] = cardio_zone_minutes
+        init_data['peak_zone_minutes'] = peak_zone_minutes
 
-    return starting_data
+    return init_data
 
 
 def retrieve_fitbit_data(profile, server_host):
@@ -161,9 +161,9 @@ def retrieve_fitbit_data(profile, server_host):
             data['data'] = _build_data(profile)
         else:
             data['auth_url'] = _auth_url(server_host)
-    except AuthError as error:
+    except ApiAuthError:
         traceback.print_exc()
-        data['errors'] = str(error)
+        data['errors'] = 'Fitbit auth error. Please re-authenticate.'
         data['auth_url'] = _auth_url(server_host)
         data['authorized'] = False
 
@@ -188,25 +188,30 @@ def _refresh_token(profile):
 
 def _send_auth_request(profile, data):
     client_id = os.environ['FITBIT_CLIENT_ID']
-    encoded_auth_key = urlsafe_base64_encode(str.encode(f"{client_id}:{os.environ['FITBIT_CLIENT_SECRET']}")).decode(
-        "utf-8")
+    encoded_auth_key = urlsafe_base64_encode(str.encode(f"{client_id}:{os.environ['FITBIT_CLIENT_SECRET']}")).decode("utf-8")
     headers = {
         'Authorization': f"Basic {encoded_auth_key}",
         'Content-Type': 'application/x-www-form-urlencoded'
     }
-    response = requests.post('https://api.fitbit.com/oauth2/token', headers=headers, data=data).json()
+    response = requests.post('https://api.fitbit.com/oauth2/token', headers=headers, data=data)
+    _validate_response(response)
 
-    access_token = response.get('access_token', None)
-    refresh_token = response.get('refresh_token', None)
-    fitbit_user_id = response.get('user_id', None)
+    json_response = response.json()
 
-    if 'errors' in response:
-        raise AuthError(str(response['errors']))
-
-    profile.access_token = access_token
-    profile.refresh_token = refresh_token
-    profile.token_expiration = timezone.now() + timezone.timedelta(seconds=response.get('expires_in'))
-    profile.fitbit_user_id = fitbit_user_id
+    profile.access_token = json_response['access_token']
+    profile.refresh_token = json_response['refresh_token']
+    profile.token_expiration = timezone.now() + timezone.timedelta(seconds=(json_response['expires_in']))
+    profile.fitbit_user_id = json_response['user_id']
     profile.save()
 
     return True
+
+
+def _validate_response(response):
+    json_response = response.json()
+    errors = ', '.join([e['message'] for e in response.json()['errors']]) if 'errors' in json_response else ''
+
+    if response.status_code == 401:
+        raise ApiAuthError(errors)
+    elif response.status_code != 200:
+        raise ApiError(errors)

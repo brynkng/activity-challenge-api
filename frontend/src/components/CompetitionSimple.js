@@ -28,10 +28,8 @@ const CompetitionSimple = props => {
       className={classes.titleLink}
     >
       <div className={classes.container}>
-        <Typography variant="title">
-          {" "}
-          {props.competition.name} - {props.competition.points} points
-        </Typography>
+        <Typography variant="title">{props.competition.name}</Typography>
+        <Typography variant="display1">{props.competition.point_details.points}</Typography>
       </div>
     </Link>
   );

@@ -30,7 +30,6 @@ class Dashboard extends React.Component {
         } else if (r.data.auth_url) {
           if(r.data.errors) {
             this.props.showError(r.data.errors);
-            console.log(r.data.errors)
           }
           this.setState({ fitbit_auth_url: r.data.auth_url });
         }
@@ -53,23 +52,13 @@ class Dashboard extends React.Component {
             <Route
               path="/"
               exact
-              render={props => (
-                <CompetitionList
-                  {...props}
-                  competitions={this.state.competitions}
-                />
-              )}
+              render={() => (<CompetitionList competitions={this.state.competitions} />)}
             />
 
             <Route
               path="/competition/:id"
               exact
-              render={props => (
-                <CompetitionDetail
-                  {...props}
-                  competitions={this.state.competitions}
-                />
-              )}
+              render={() => (<CompetitionDetail competitions={this.state.competitions}/>)}
             />
           </Switch>
         ) : this.state.fitbit_auth_url ? (
