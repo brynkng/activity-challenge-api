@@ -9,4 +9,5 @@ urlpatterns = [
     path('logout/', views.LogoutUser.as_view(), name='logout'),
     path('fitbit_data/', views.fitbit_data),
     path('store_fitbit_auth/', views.fitbit_store_auth),
+    path('competition_friend_list/<int:competition_id>/', views.competition_friend_list),
 ]
