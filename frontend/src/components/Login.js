@@ -6,17 +6,24 @@ import Link from "react-router-dom/Link";
 import Typography from "@material-ui/core/Typography";
 import { login } from "../services/auth_api";
 import { withRouter } from "react-router";
+import Grid from "@material-ui/core/Grid";
 
 const styles = theme => ({
   container: {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center"
+    margin: "0 auto",
+    maxWidth: "40em"
   },
   textField: {
     marginLeft: theme.spacing.unit,
     marginRight: theme.spacing.unit,
     width: 200
+  },
+  register: {
+    margin: "1em 0",
+    display: "block"
+  },
+  login: {
+    margin: "1em 0"
   }
 });
 
@@ -42,36 +49,51 @@ class Login extends React.Component {
     const { classes } = this.props;
 
     return (
-      <div className="login">
+      <>
         <Typography variant="headline" color="inherit">
           LOGIN
         </Typography>
 
         <form className={classes.container} onSubmit={this.handleSubmit}>
-          <TextField
-            id="username"
-            label="Username"
-            className={classes.textField}
-            margin="normal"
-            type="text"
-            name="username"
-          />
-          <TextField
-            id="password"
-            label="Password"
-            className={classes.textField}
-            margin="normal"
-            type="password"
-            name="password"
-          />
+          <Grid container alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                id="username"
+                label="Username"
+                className={classes.textField}
+                margin="normal"
+                type="text"
+                name="username"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                id="password"
+                label="Password"
+                className={classes.textField}
+                margin="normal"
+                type="password"
+                name="password"
+              />
+            </Grid>
 
-          <Button variant="contained" color="primary" type="submit">
-            LOGIN
-          </Button>
+            <Grid item xs={12} md={4}>
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                className={classes.login}
+              >
+                LOGIN
+              </Button>
+            </Grid>
+          </Grid>
         </form>
 
-        <Link to="/register">Not registered? Click here</Link>
-      </div>
+        <Link to="/register" className={classes.register}>
+          <Typography variant="button">register</Typography>
+        </Link>
+      </>
     );
   }
 }

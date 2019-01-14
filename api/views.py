@@ -4,9 +4,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from api.custom_errors import ApiError
-from api.services.fitbit_api import retrieve_fitbit_data, store_fitbit_auth, get_competition_friend_list
-from .models import Competition
-from api.serializers import CompetitionSerializer, LoginSerializer
+from api.services.fitbit_api import retrieve_fitbit_data, store_fitbit_auth
+from .models import CompetitionInvitation
+from api.serializers import LoginSerializer, CompetitionInvitationSerializer, CompetitionInvitationListSerializer
 from rest_framework import generics, status
 from django.contrib.auth import get_user_model, login, logout
 from rest_framework import permissions
@@ -15,9 +15,40 @@ from rest_framework.response import Response
 from django.shortcuts import redirect
 
 
-class CompetitionListCreate(generics.ListCreateAPIView):
-    queryset = Competition.objects.all()
-    serializer_class = CompetitionSerializer
+class CompetitionInvitationUpdate(generics.UpdateAPIView):
+    queryset = CompetitionInvitation.objects.all()
+    serializer_class = CompetitionInvitationSerializer
+
+    def patch(self, request, *args, **kwargs):
+
+        if request.data['accepted']:
+            invitation = self.get_object()
+            invitation.profile.competitions.add(invitation.competition)
+            invitation.save()
+
+        return self.partial_update(request, *args, **kwargs)
+
+
+class CompetitionInvitationCreate(generics.ListCreateAPIView):
+
+    serializer_class = CompetitionInvitationSerializer
+    permission_classes = [
+        permissions.IsAuthenticated
+    ]
+
+    def post(self, request, *args, **kwargs):
+        # Defaulting the sender to the current user
+        request.data['sender'] = request.user.profile.id
+
+        return self.create(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        self.queryset = CompetitionInvitation.objects.filter(profile=request.user.profile, accepted__isnull=True)
+        self.serializer = self.get_serializer(data=self.request.data,
+                                              context={'request': request})
+        return Response({
+            'invitations': CompetitionInvitationListSerializer(self.queryset, many=True).data
+        })
 
 
 class CreateUser(generics.CreateAPIView):
@@ -77,5 +108,10 @@ def fitbit_store_auth(request):
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def fitbit_data(request):
-    r = retrieve_fitbit_data(request.user.profile, request.get_host())
-    return Response(r)
+    try:
+        r = retrieve_fitbit_data(request.user.profile, request.get_host())
+        return Response(r)
+    except ApiError as error:
+        traceback.print_exc()
+        return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+

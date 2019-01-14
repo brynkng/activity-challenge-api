@@ -5,6 +5,7 @@ import Typography from "@material-ui/core/Typography";
 import Link from "react-router-dom/Link";
 import { withStyles } from "@material-ui/core/styles";
 import classNames from "classnames";
+import LogoutIcon from "@material-ui/icons/ExitToApp";
 
 const styles = theme => ({
   titleLink: {
@@ -36,7 +37,7 @@ const NavBar = props => {
               className={classNames(classes.logout, classes.titleLink)}
               onClick={props.handleLogout.bind(this)}
             >
-              Logout
+              <LogoutIcon fontSize="large" />
             </Link>
           ) : null}
         </Toolbar>

@@ -5,7 +5,7 @@ import requests
 from django.utils.http import urlsafe_base64_encode
 from django.utils import timezone
 from api.custom_errors import ApiAuthError, ApiError
-from api.models import Profile
+from api.models import Profile, CompetitionInvitation
 
 
 def memoize(f):
@@ -50,19 +50,18 @@ def get_competition_friend_list(profile, competition):
         profile_id__in=profile_to_fitbit.keys()
     ).values_list('profile_id', flat=True)
 
-    # TODO invited
-
     def _build_friend_list(f):
         info = f['user']
         fitbit_id = info['encodedId']
         profile_id = fitbit_to_profile.get(fitbit_id, None)
+        invited = CompetitionInvitation.objects.filter(profile=profile_id, competition=competition.id).exists()
 
         return {
             'display_name': info['displayName'],
             'avatar': info['avatar'],
             'in_app': fitbit_id in fitbit_to_profile,
             'in_competition': profile_id in in_competition,
-            'invited': False,
+            'invited': invited,
             'profile_id': profile_id,
             'fitbit_id': fitbit_id
         }
@@ -124,8 +123,6 @@ def _add_point_details(competition, init_data, profile):
     _validate_response(activity_response)
 
     activity_response = activity_response.json()
-    print('-'*200)
-    print(activity_response)
     if 'summary' in activity_response and 'heartRateZones' in activity_response['summary']:
         summary = activity_response['summary']
 

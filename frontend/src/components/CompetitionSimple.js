@@ -29,7 +29,9 @@ const CompetitionSimple = props => {
     >
       <div className={classes.container}>
         <Typography variant="title">{props.competition.name}</Typography>
-        <Typography variant="display1">{props.competition.point_details.points}</Typography>
+        <Typography variant="display1">
+          {props.competition.point_details.points}
+        </Typography>
       </div>
     </Link>
   );

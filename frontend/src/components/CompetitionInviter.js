@@ -17,7 +17,12 @@ const CompetitionInviter = props => {
 
   let invitable_friends = competition.invitable_friends
     ? competition.invitable_friends.map(f => (
-        <FriendInviter key={f.profile_id} friend={f} />
+        <FriendInviter
+          key={f.profile_id}
+          friend={f}
+          handleInvite={props.handleInvite}
+          competition_id={competition.id}
+        />
       ))
     : null;
 

@@ -1,12 +1,6 @@
 from rest_framework import serializers, exceptions
 from django.contrib.auth import get_user_model, authenticate
-from api.models import Competition
-
-
-class CompetitionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Competition
-        fields = '__all__'
+from api.models import Competition, CompetitionInvitation, Profile
 
 
 UserModel = get_user_model()
@@ -46,3 +40,41 @@ class LoginSerializer(serializers.Serializer):
             raise exceptions.ValidationError("User is inactive")
         else:
             return user
+
+
+class ShowUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserModel
+        fields = ("id", "username")
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    user = ShowUserSerializer()
+
+    class Meta:
+        model = Profile
+        fields = ('id', 'user')
+        depth = 1
+
+
+class CompetitionInvitationListSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer()
+    profile = ProfileSerializer()
+
+    class Meta:
+        model = CompetitionInvitation
+        fields = ('id', 'competition', 'sender', 'profile')
+        depth = 1
+
+
+class CompetitionInvitationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CompetitionInvitation
+        fields = '__all__'
+
+
+class CompetitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Competition
+        fields = '__all__'

@@ -51,17 +51,18 @@ class Profile(models.Model):
     token_expiration = models.DateTimeField(blank=True, null=True)
     fitbit_user_id = models.CharField(max_length=50, blank=True)
 
-    competitions = models.ManyToManyField(Competition)
+    competitions = models.ManyToManyField(Competition, blank=True)
 
     def __str__(self):
         return f"Tagline: {self.tagline} User: {self.user.username}"
 
 
 class CompetitionInvitation(models.Model):
-    profile = models.OneToOneField(Profile, on_delete=models.CASCADE)
-    competition = models.OneToOneField(Competition, on_delete=models.CASCADE)
-    accepted = models.BooleanField()
-    token = models.CharField(max_length=250)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="profile")
+    competition = models.ForeignKey(Competition, on_delete=models.CASCADE)
+    accepted = models.BooleanField(blank=True, null=True)
+    token = models.CharField(max_length=250, blank=True, null=True)
+    sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='sender_profile')
 
 #Signals
 

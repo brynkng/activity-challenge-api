@@ -79,6 +79,14 @@ class Layout extends React.Component {
     });
   };
 
+  showSuccess = message => {
+    this.setState({
+      open: true,
+      snackbar_variant: "success",
+      snackbar_message: message
+    });
+  };
+
   render() {
     const { classes } = this.props;
 
@@ -91,7 +99,10 @@ class Layout extends React.Component {
           />
           <Paper className={classes.paper}>
             {this.state.loggedIn ? (
-              <Dashboard showError={this.showError} />
+              <Dashboard
+                showError={this.showError}
+                showSuccess={this.showSuccess}
+              />
             ) : (
               <Auth
                 showError={this.showError}

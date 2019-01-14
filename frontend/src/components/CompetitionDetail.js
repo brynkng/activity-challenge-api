@@ -5,17 +5,26 @@ import { withRouter } from "react-router";
 import CompetitionInviter from "./CompetitionInviter";
 import Grid from "@material-ui/core/Grid";
 import PointDisplay from "./PointDisplay";
-
+import ArrowBackIcon from "@material-ui/icons/ArrowBack";
+import { Link } from "react-router-dom";
 
 const styles = theme => ({
   title: {
-    margin: '.5em 0'
+    margin: ".5em 0"
   },
   card: {
-    padding: '1.5em 0'
+    padding: "1.5em 0"
   },
   table: {
-    marginTop: '1em'
+    marginTop: "1em"
+  },
+  headerContainer: {
+    position: "relative"
+  },
+  backLink: {
+    position: "absolute",
+    left: 0,
+    color: "inherit"
   }
 });
 
@@ -28,15 +37,32 @@ const CompetitionDetail = props => {
 
   return (
     <>
-      <Typography variant="display1" className={classes.title}> {competition.name}</Typography>
+      <header className={classes.headerContainer}>
+        <Link to="/" className={classes.backLink}>
+          <ArrowBackIcon fontSize="large" />
+        </Link>
+        <Typography variant="display1" className={classes.title}>
+          {" "}
+          {competition.name}
+        </Typography>
+      </header>
 
       <Grid container spacing={24} className={classes.container}>
         <Grid item xs={12} md={7}>
-          <PointDisplay name={'Me'} point_details={competition.point_details}/>
-          {competition.competition_members.map(m => <PointDisplay key={m.profile_id} name={m.display_name} point_details={m}/>)}
+          <PointDisplay name={"Me"} point_details={competition.point_details} />
+          {competition.competition_members.map(m => (
+            <PointDisplay
+              key={m.profile_id}
+              name={m.display_name}
+              point_details={m}
+            />
+          ))}
         </Grid>
         <Grid item xs={12} md={5}>
-          <CompetitionInviter competition={competition} />
+          <CompetitionInviter
+            competition={competition}
+            handleInvite={props.handleInvite}
+          />
         </Grid>
       </Grid>
     </>
