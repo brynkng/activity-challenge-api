@@ -137,8 +137,11 @@ def _add_point_details(competition, init_data, profile):
 
         init_data['points'] = points
         init_data['active_minutes'] = active_minutes
+        init_data['active_minute_factor'] = point_system.active_minute_points
         init_data['cardio_zone_minutes'] = cardio_zone_minutes
+        init_data['cardio_zone_factor'] = point_system.cardio_zone_points
         init_data['peak_zone_minutes'] = peak_zone_minutes
+        init_data['peak_zone_factor'] = point_system.peak_zone_points
 
     return init_data
 

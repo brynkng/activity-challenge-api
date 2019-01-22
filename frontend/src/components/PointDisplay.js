@@ -20,6 +20,10 @@ const styles = theme => ({
   },
   table: {
     marginTop: "1em"
+  },
+  point_factor: {
+    display: "inline-block",
+    marginLeft: "0.2em"
   }
 });
 
@@ -57,18 +61,36 @@ class PointDisplay extends React.Component {
                     <TableCell>Active Minutes</TableCell>
                     <TableCell>
                       {this.props.point_details.active_minutes}
+                      <Typography
+                        variant="caption"
+                        className={classes.point_factor}
+                      >
+                        (x{this.props.point_details.active_minute_factor})
+                      </Typography>
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Cardio Zone Minutes</TableCell>
                     <TableCell>
                       {this.props.point_details.cardio_zone_minutes}
+                      <Typography
+                        variant="caption"
+                        className={classes.point_factor}
+                      >
+                        (x{this.props.point_details.cardio_zone_factor})
+                      </Typography>
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Peak Zone Minutes</TableCell>
                     <TableCell>
                       {this.props.point_details.peak_zone_minutes}
+                      <Typography
+                        variant="caption"
+                        className={classes.point_factor}
+                      >
+                        (x{this.props.point_details.peak_zone_factor})
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 </>

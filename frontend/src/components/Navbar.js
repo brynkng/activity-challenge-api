@@ -8,14 +8,11 @@ import classNames from "classnames";
 import LogoutIcon from "@material-ui/icons/ExitToApp";
 
 const styles = theme => ({
-  titleLink: {
+  title: { flexGrow: 1 },
+  link: {
     color: "inherit",
     textDecoration: "none",
     "&:hover": { color: "inherit" }
-  },
-  logout: {
-    position: "absolute",
-    right: "1em"
   }
 });
 
@@ -26,15 +23,15 @@ const NavBar = props => {
     <div>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="title" color="inherit">
-            <Link to="/" className={classes.titleLink}>
+          <Typography variant="title" color="inherit" className={classes.title}>
+            <Link to="/" className={classes.link}>
               Activity Challenge
             </Link>
           </Typography>
           {props.loggedIn ? (
             <Link
               to="/"
-              className={classNames(classes.logout, classes.titleLink)}
+              className={classes.link}
               onClick={props.handleLogout.bind(this)}
             >
               <LogoutIcon fontSize="large" />
