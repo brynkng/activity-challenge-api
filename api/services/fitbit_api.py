@@ -124,6 +124,7 @@ def _build_detailed_competition(profile, competition):
         'id': competition.id,
         'name': competition.name,
         'point_details': _build_point_details(competition, {}, profile),
+        'current': not competition.has_ended(),
         'competition_members': competition_members,
         'invitable_friends': invitable_friends
 

@@ -12,6 +12,7 @@ import {
   getCompetitionDetails
 } from "../services/data_provider";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import WinnerDisplay from "./WinnerDisplay";
 
 const styles = theme => ({
   title: {
@@ -76,6 +77,7 @@ class CompetitionDetail extends Component {
 
   render() {
     const { classes } = this.props;
+
     return this.state.competition ? (
       <>
         <header className={classes.headerContainer}>
@@ -87,6 +89,8 @@ class CompetitionDetail extends Component {
             {this.state.competition.name}
           </Typography>
         </header>
+
+        <WinnerDisplay competition={this.state.competition} />
 
         <Grid container spacing={24} className={classes.container}>
           <Grid item xs={12} md={7}>
