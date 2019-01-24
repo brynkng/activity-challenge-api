@@ -2,8 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
-# Create your models here.
 
 class PointSystem(models.Model):
     active_minute_points = models.IntegerField(default=2)
@@ -13,6 +13,7 @@ class PointSystem(models.Model):
 
     def __str__(self):
         return f"active: {self.active_minute_points} fat zone: {self.fat_zone_points} cardio zone: {self.cardio_zone_points} peak zone: {self.peak_zone_points}"
+
 
 class Competition(models.Model):
     DAILY = 'DL'
@@ -33,12 +34,15 @@ class Competition(models.Model):
 
     start = models.DateField()
 
-    length = models.IntegerField(help_text="e.g. Daily * 5 length = 5 days")
+    end = models.DateField()
 
     name = models.CharField(max_length=255)
 
     point_system = models.ForeignKey(PointSystem, on_delete=models.CASCADE, default=1)
-    
+
+    def has_ended(self):
+        return self.end < timezone.now().date()
+
     def __str__(self):
         return f"{self.name}"
 
@@ -64,13 +68,22 @@ class CompetitionInvitation(models.Model):
     token = models.CharField(max_length=250, blank=True, null=True)
     sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='sender_profile')
 
-#Signals
+
+class CompetitionScore(models.Model):
+    point_total = models.IntegerField()
+    competition = models.ForeignKey(Competition, on_delete=models.CASCADE)
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='competition_scores')
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+# Signals
 
 # Possible anti-pattern - move to creation process?
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
+
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):

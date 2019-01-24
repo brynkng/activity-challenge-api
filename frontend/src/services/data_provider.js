@@ -1,28 +1,27 @@
 import axios from "../axios";
 
-function getCompetitionData() {
-  return axios.get("api/fitbit_data/");
-}
+const getCompetitionDetails = competition_id =>
+  axios.get(`api/competitions/${competition_id}`);
 
-function createCompetitionInvitation(profile_id, competition_id) {
-  return axios.post("api/competition_invitations/", {
+const getSimpleCompetitionList = () => axios.get("api/competitions/");
+
+const createCompetitionInvitation = (profile_id, competition_id) =>
+  axios.post("api/competition_invitations/", {
     profile: profile_id,
     competition: competition_id
   });
-}
 
-function getCompetitionInvitations() {
-  return axios.get("api/competition_invitations/");
-}
+const getCompetitionInvitations = () =>
+  axios.get("api/competition_invitations/");
 
-function updateCompetitionInvitation(invitation_id, accepted) {
-  return axios.patch(`api/competition_invitations/${invitation_id}`, {
+const updateCompetitionInvitation = (invitation_id, accepted) =>
+  axios.patch(`api/competition_invitations/${invitation_id}`, {
     accepted: accepted
   });
-}
 
 export {
-  getCompetitionData,
+  getCompetitionDetails,
+  getSimpleCompetitionList,
   createCompetitionInvitation,
   getCompetitionInvitations,
   updateCompetitionInvitation

@@ -1,9 +1,10 @@
 import React from "react";
-import { withStyles } from "@material-ui/core";
+import { withStyles, withWidth } from "@material-ui/core";
 import Typography from "@material-ui/core/es/Typography/Typography";
 import CircularProgress from "@material-ui/core/es/CircularProgress/CircularProgress";
 import FriendInviter from "./FriendInviter";
 import Card from "@material-ui/core/Card";
+import { isWidthUp } from "@material-ui/core/withWidth";
 
 const styles = theme => ({
   container: {
@@ -27,12 +28,16 @@ const CompetitionInviter = props => {
     : null;
 
   return (
-    <Card className={classes.container}>
-      <Typography variant="subheading">Invite Friends</Typography>
+    <Card
+      className={classes.container}
+      elevation={0}
+      // elevation={isWidthUp("sm", props.width) ? 1 : 0}
+    >
+      <Typography variant="h6">Invite Friends</Typography>
 
       {invitable_friends ? <>{invitable_friends}</> : <CircularProgress />}
     </Card>
   );
 };
 
-export default withStyles(styles)(CompetitionInviter);
+export default withStyles(styles)(withWidth()(CompetitionInviter));

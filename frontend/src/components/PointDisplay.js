@@ -15,7 +15,7 @@ const styles = theme => ({
   },
   card: {
     paddingTop: "1.5em",
-    margin: "1em 0",
+    marginBottom: "1em",
     cursor: "pointer"
   },
   table: {
@@ -42,7 +42,7 @@ class PointDisplay extends React.Component {
 
     return (
       <Card className={classes.card} onClick={this.handleClick}>
-        <Typography variant="title">{this.props.name}</Typography>
+        <Typography variant="h6">{this.props.name}</Typography>
 
         <Typography variant="inherit">
           <Table className={this.props.classes.table}>

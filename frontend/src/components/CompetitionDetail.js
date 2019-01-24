@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Component } from "react";
 import { withStyles } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import { withRouter } from "react-router";
@@ -7,6 +7,11 @@ import Grid from "@material-ui/core/Grid";
 import PointDisplay from "./PointDisplay";
 import ArrowBackIcon from "@material-ui/icons/ArrowBack";
 import { Link } from "react-router-dom";
+import {
+  createCompetitionInvitation,
+  getCompetitionDetails
+} from "../services/data_provider";
+import CircularProgress from "@material-ui/core/CircularProgress";
 
 const styles = theme => ({
   title: {
@@ -28,45 +33,87 @@ const styles = theme => ({
   }
 });
 
-const CompetitionDetail = props => {
-  const { classes } = props;
-  const id = parseInt(props.match.params.id);
-  let competition = props.competitions.filter(c => {
-    return id === c.id;
-  })[0];
+class CompetitionDetail extends Component {
+  state = {
+    competition: null
+  };
 
-  return (
-    <>
-      <header className={classes.headerContainer}>
-        <Link to="/" className={classes.backLink}>
-          <ArrowBackIcon fontSize="large" />
-        </Link>
-        <Typography variant="display1" className={classes.title}>
-          {" "}
-          {competition.name}
-        </Typography>
-      </header>
+  componentDidMount() {
+    const id = parseInt(this.props.match.params.id);
+    getCompetitionDetails(id)
+      .then(r => {
+        this.setState({ competition: r.data.data });
+      })
+      .catch(r => {
+        console.log(r);
+        this.props.showError("Error loading competition details");
+      });
+  }
 
-      <Grid container spacing={24} className={classes.container}>
-        <Grid item xs={12} md={7}>
-          <PointDisplay name={"Me"} point_details={competition.point_details} />
-          {competition.competition_members.map(m => (
+  handleInvite = (competition_id, profile_id, display_name) => {
+    createCompetitionInvitation(profile_id, competition_id)
+      .then(r => {
+        this.updateInviteDisplay(competition_id, profile_id, display_name);
+      })
+      .catch(r => {
+        console.log(r.response.data);
+        this.props.showError("Error occurred inviting!");
+      });
+  };
+
+  updateInviteDisplay = (competition_id, profile_id, display_name) => {
+    let competition = { ...this.state.competition };
+
+    competition.invitable_friends = competition.invitable_friends.map(f => {
+      if (f.profile_id === profile_id) f.invited = true;
+      return f;
+    });
+
+    this.props.showSuccess(`${display_name} invited!`);
+
+    this.setState({ competition: competition });
+  };
+
+  render() {
+    const { classes } = this.props;
+    return this.state.competition ? (
+      <>
+        <header className={classes.headerContainer}>
+          <Link to="/" className={classes.backLink}>
+            <ArrowBackIcon fontSize="large" />
+          </Link>
+          <Typography variant="display1" className={classes.title}>
+            {" "}
+            {this.state.competition.name}
+          </Typography>
+        </header>
+
+        <Grid container spacing={24} className={classes.container}>
+          <Grid item xs={12} md={7}>
             <PointDisplay
-              key={m.profile_id}
-              name={m.display_name}
-              point_details={m}
+              name={"Me"}
+              point_details={this.state.competition.point_details}
             />
-          ))}
+            {this.state.competition.competition_members.map(m => (
+              <PointDisplay
+                key={m.profile_id}
+                name={m.display_name}
+                point_details={m}
+              />
+            ))}
+          </Grid>
+          <Grid item xs={12} md={5}>
+            <CompetitionInviter
+              competition={this.state.competition}
+              handleInvite={this.handleInvite}
+            />
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={5}>
-          <CompetitionInviter
-            competition={competition}
-            handleInvite={props.handleInvite}
-          />
-        </Grid>
-      </Grid>
-    </>
-  );
-};
+      </>
+    ) : (
+      <CircularProgress />
+    );
+  }
+}
 
 export default withRouter(withStyles(styles)(CompetitionDetail));

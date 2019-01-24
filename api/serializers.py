@@ -2,14 +2,13 @@ from rest_framework import serializers, exceptions
 from django.contrib.auth import get_user_model, authenticate
 from api.models import Competition, CompetitionInvitation, Profile
 
-
 UserModel = get_user_model()
-class UserSerializer(serializers.ModelSerializer):
 
+
+class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
     def create(self, validated_data):
-
         user = UserModel.objects.create(
             username=validated_data['username']
         )
@@ -21,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
         # Tuple of serialized model fields (see link [2])
-        fields = ( "id", "username", "password", )
+        fields = ("id", "username", "password",)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -68,13 +67,18 @@ class CompetitionInvitationListSerializer(serializers.ModelSerializer):
 
 
 class CompetitionInvitationSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = CompetitionInvitation
         fields = '__all__'
 
 
 class CompetitionSerializer(serializers.ModelSerializer):
+    def validate(self, attrs):
+        if attrs.get('start') > attrs.get('end'):
+            raise exceptions.ValidationError("Competition end date cannot be before start date")
+
+        return attrs
+
     class Meta:
         model = Competition
         fields = '__all__'

@@ -11,9 +11,8 @@ const CompetitionsContainer = props => {
         exact
         render={() => (
           <CompetitionList
-            competitions={props.competitions}
             showSuccess={props.showSuccess}
-            refreshCompetitions={props.refreshCompetitions}
+            showError={props.showError}
           />
         )}
       />
@@ -23,8 +22,9 @@ const CompetitionsContainer = props => {
         exact
         render={() => (
           <CompetitionDetail
-            competitions={props.competitions}
             handleInvite={props.handleInvite}
+            showError={props.showError}
+            showSuccess={props.showSuccess}
           />
         )}
       />

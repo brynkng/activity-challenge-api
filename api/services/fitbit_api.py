@@ -5,7 +5,7 @@ import requests
 from django.utils.http import urlsafe_base64_encode
 from django.utils import timezone
 from api.custom_errors import ApiAuthError, ApiError
-from api.models import Profile, CompetitionInvitation
+from api.models import Profile, CompetitionInvitation, CompetitionScore, Competition
 
 
 def memoize(f):
@@ -77,12 +77,31 @@ def get_friends(profile):
     return response.json().get('friends', [])
 
 
-def _build_data(profile):
-    return {'competitions': [_build_competition_summary(profile, competition) for competition in
+def _build_simple_competitions_data(profile):
+    return {'competitions': [_build_simple_competition(profile, competition) for competition in
                              profile.competitions.all()]}
 
 
-def _build_competition_summary(profile, competition):
+def _build_simple_competition(profile, competition):
+    score = profile.competition_scores.filter(competition_id=competition.id).last()
+
+    if not score:
+        data = _build_point_details(competition, {}, profile)
+        score = CompetitionScore.objects.create(
+            point_total=data.get('points'),
+            competition=competition, profile=profile
+        )
+        score.save()
+
+    return {
+        'id': competition.id,
+        'name': competition.name,
+        'points': score.point_total,
+        'current': not competition.has_ended()
+    }
+
+
+def _build_detailed_competition(profile, competition):
     friend_list = get_competition_friend_list(profile, competition)
     profile_ids = [f['profile_id'] for f in friend_list]
     profiles = Profile.objects.filter(id__in=profile_ids)
@@ -91,7 +110,7 @@ def _build_competition_summary(profile, competition):
         return [p for p in profiles if p.id == id][0]
 
     competition_members = [
-        _add_point_details(competition, f, profile)
+        _build_point_details(competition, f, profile)
         for f in friend_list if f['in_competition']
     ]
     # competition_members = [
@@ -101,19 +120,17 @@ def _build_competition_summary(profile, competition):
 
     invitable_friends = [f for f in friend_list if f['in_app'] and not f['in_competition']]
 
-    competition_info = {
+    return {
         'id': competition.id,
         'name': competition.name,
-        'point_details': _add_point_details(competition, {}, profile),
+        'point_details': _build_point_details(competition, {}, profile),
         'competition_members': competition_members,
         'invitable_friends': invitable_friends
 
     }
 
-    return competition_info
 
-
-def _add_point_details(competition, init_data, profile):
+def _build_point_details(competition, init_data, profile):
     point_system = competition.point_system
 
     # activity_response = requests.get(f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/date/today.json",
@@ -146,7 +163,26 @@ def _add_point_details(competition, init_data, profile):
     return init_data
 
 
-def retrieve_fitbit_data(profile, server_host):
+def get_detailed_competition(profile, server_host, competition_id):
+    competition = Competition.objects.filter(id=competition_id).last()
+    data = validate_fitbit_access(profile, server_host)
+
+    if data.get('authorized'):
+        data['data'] = _build_detailed_competition(profile, competition)
+
+    return data
+
+
+def get_simple_competitions_list(profile, server_host):
+    data = validate_fitbit_access(profile, server_host)
+
+    if data.get('authorized'):
+        data['data'] = _build_simple_competitions_data(profile)
+
+    return data
+
+
+def validate_fitbit_access(profile, server_host):
     token_expiration = profile.token_expiration
     access_token = profile.access_token
     authorized = bool(access_token)
@@ -157,10 +193,9 @@ def retrieve_fitbit_data(profile, server_host):
         if expired:
             authorized = _refresh_token(profile)
 
-        if authorized:
-            data['data'] = _build_data(profile)
-        else:
+        if not authorized:
             data['auth_url'] = _auth_url(server_host)
+
     except ApiAuthError:
         traceback.print_exc()
         data['errors'] = 'Fitbit auth error. Please re-authenticate.'
@@ -188,7 +223,8 @@ def _refresh_token(profile):
 
 def _send_auth_request(profile, data):
     client_id = os.environ['FITBIT_CLIENT_ID']
-    encoded_auth_key = urlsafe_base64_encode(str.encode(f"{client_id}:{os.environ['FITBIT_CLIENT_SECRET']}")).decode("utf-8")
+    encoded_auth_key = urlsafe_base64_encode(str.encode(f"{client_id}:{os.environ['FITBIT_CLIENT_SECRET']}")).decode(
+        "utf-8")
     headers = {
         'Authorization': f"Basic {encoded_auth_key}",
         'Content-Type': 'application/x-www-form-urlencoded'

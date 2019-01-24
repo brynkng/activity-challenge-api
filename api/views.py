@@ -1,12 +1,14 @@
 import traceback
 
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from api.custom_errors import ApiError
-from api.services.fitbit_api import retrieve_fitbit_data, store_fitbit_auth
-from .models import CompetitionInvitation
-from api.serializers import LoginSerializer, CompetitionInvitationSerializer, CompetitionInvitationListSerializer
+from api.services.fitbit_api import store_fitbit_auth, get_simple_competitions_list, get_detailed_competition
+from .models import CompetitionInvitation, Competition
+from api.serializers import LoginSerializer, CompetitionInvitationSerializer, CompetitionInvitationListSerializer, \
+    CompetitionSerializer
 from rest_framework import generics, status
 from django.contrib.auth import get_user_model, login, logout
 from rest_framework import permissions
@@ -15,12 +17,16 @@ from rest_framework.response import Response
 from django.shortcuts import redirect
 
 
+class CompetitionCreate(generics.CreateAPIView):
+    queryset = Competition.objects.all()
+    serializer_class = CompetitionSerializer
+
+
 class CompetitionInvitationUpdate(generics.UpdateAPIView):
     queryset = CompetitionInvitation.objects.all()
     serializer_class = CompetitionInvitationSerializer
 
     def patch(self, request, *args, **kwargs):
-
         if request.data['accepted']:
             invitation = self.get_object()
             invitation.profile.competitions.add(invitation.competition)
@@ -30,7 +36,6 @@ class CompetitionInvitationUpdate(generics.UpdateAPIView):
 
 
 class CompetitionInvitationCreate(generics.ListCreateAPIView):
-
     serializer_class = CompetitionInvitationSerializer
     permission_classes = [
         permissions.IsAuthenticated
@@ -107,11 +112,20 @@ def fitbit_store_auth(request):
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
-def fitbit_data(request):
+def simple_competitions_list(request):
     try:
-        r = retrieve_fitbit_data(request.user.profile, request.get_host())
+        r = get_simple_competitions_list(request.user.profile, request.get_host())
         return Response(r)
     except ApiError as error:
         traceback.print_exc()
         return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+# TODO add perms for competition detail viewing
+def competition_details(request, competition_id):
+    try:
+        return Response(get_detailed_competition(request.user.profile, request.get_host(), competition_id))
+    except ObjectDoesNotExist:
+        return Response(f"Competition {competition_id} not found", status=status.HTTP_404_NOT_FOUND)
