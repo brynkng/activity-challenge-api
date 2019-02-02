@@ -1,22 +1,14 @@
+from datetime import datetime, time
 import os
 import traceback
+from functools import reduce
 
+import pytz
 import requests
 from django.utils.http import urlsafe_base64_encode
 from django.utils import timezone
 from api.custom_errors import ApiAuthError, ApiError
 from api.models import Profile, CompetitionInvitation, CompetitionScore, Competition
-
-
-def memoize(f):
-    memo = {}
-
-    def helper(x):
-        if x not in memo:
-            memo[x] = f(x)
-        return memo[x]
-
-    return helper
 
 
 def store_fitbit_auth(code, server_host, profile):
@@ -30,7 +22,17 @@ def store_fitbit_auth(code, server_host, profile):
         'expires_in': 2592000
     }
 
-    return _send_auth_request(profile, data)
+    _send_auth_request(profile, data)
+
+    _save_display_name(profile)
+
+
+def _save_display_name(profile):
+    response = requests.get('https://api.fitbit.com/1/user/-/profile.json',
+                            headers=get_auth_headers(profile.access_token))
+    _validate_response(response)
+    profile.display_name = response.json()['user']['displayName']
+    profile.save()
 
 
 def get_auth_headers(access_token):
@@ -82,23 +84,61 @@ def _build_simple_competitions_data(profile):
                              profile.competitions.all()]}
 
 
-def _build_simple_competition(profile, competition):
-    score = profile.competition_scores.filter(competition_id=competition.id).last()
+def _update_competition_scores(competition):
+    scores = []
 
-    if not score:
-        data = _build_point_details(competition, {}, profile)
-        score = CompetitionScore.objects.create(
-            point_total=data.get('points'),
-            competition=competition, profile=profile
-        )
-        score.save()
+    for profile in competition.profile_set.all():
+        score = profile.competition_scores.filter(competition_id=competition.id).last()
+
+        competition_end = datetime(competition.end.year, competition.end.month, competition.end.day, 23, 59, 59,
+                                   tzinfo=pytz.UTC)
+
+        score_out_of_date = score and ((competition.has_ended() and score.updated_at < competition_end) or (
+                not competition.has_ended() and score.updated_at + timezone.timedelta(minutes=10) < timezone.now()))
+
+        if not score:
+            data = _retrieve_point_details(competition, {}, profile)
+            score = CompetitionScore.objects.create(
+                point_total=data.get('points'),
+                competition=competition,
+                profile=profile
+            )
+            score.save()
+
+        elif score_out_of_date:
+            data = _retrieve_point_details(competition, {}, profile)
+            score.point_total = data.get('points')
+            score.save()
+
+        scores.append(score)
+
+    return scores
+
+
+def _build_simple_competition(profile, competition):
+    scores = _update_competition_scores(competition)
+    score = [score for score in scores if profile.id == score.profile.id][0]
 
     return {
         'id': competition.id,
         'name': competition.name,
         'points': score.point_total,
-        'current': not competition.has_ended()
+        'current': not competition.has_ended(),
+        'winner': _get_winner(competition, scores)
     }
+
+
+def _get_winner(competition, scores=None):
+    if competition.has_ended():
+        if not scores:
+            scores = _update_competition_scores(competition)
+
+        scores.sort(key=lambda s: s.point_total)
+        winner = scores[-1]
+
+        return {'name': winner.profile.display_name, 'points': winner.point_total}
+    else:
+        return None
 
 
 def _build_detailed_competition(profile, competition):
@@ -110,7 +150,7 @@ def _build_detailed_competition(profile, competition):
         return [p for p in profiles if p.id == id][0]
 
     competition_members = [
-        _build_point_details(competition, f, profile)
+        _retrieve_point_details(competition, f, profile)
         for f in friend_list if f['in_competition']
     ]
     # competition_members = [
@@ -123,43 +163,59 @@ def _build_detailed_competition(profile, competition):
     return {
         'id': competition.id,
         'name': competition.name,
-        'point_details': _build_point_details(competition, {}, profile),
+        'point_details': _retrieve_point_details(competition, {}, profile),
         'current': not competition.has_ended(),
+        'winner': _get_winner(competition),
         'competition_members': competition_members,
         'invitable_friends': invitable_friends
 
     }
 
 
-def _build_point_details(competition, init_data, profile):
+def _retrieve_point_details(competition, init_data, profile):
     point_system = competition.point_system
 
-    # activity_response = requests.get(f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/date/today.json",
-    #                                  headers=get_auth_headers(profile.access_token))
-    activity_response = requests.get(f"https://api.fitbit.com/1/user/-/activities/date/today.json",
-                                     headers=get_auth_headers(profile.access_token))
+    start = competition.start.strftime('%Y-%m-%d')
+    end = competition.end.strftime('%Y-%m-%d')
+    # url = f"/1/user/{profile.fitbit_user_id}/activities/tracker/minutesFairlyActive/date/{start}/{end}.json"
+
+    def retrieve_activity_data(key):
+        url = f"https://api.fitbit.com/1/user/-/activities/tracker/{key}/date/{start}/{end}.json"
+        activity_response = requests.get(url, headers=get_auth_headers(profile.access_token))
+        _validate_response(activity_response)
+        return activity_response.json().get(f"activities-tracker-{key}")
+
+    init_data['fairly_active_data'] = retrieve_activity_data('minutesFairlyActive')
+    init_data['very_active_data'] = retrieve_activity_data('minutesVeryActive')
+
+    url = f"https://api.fitbit.com/1/user/-/activities/heart/date/{start}/{end}.json"
+    activity_response = requests.get(url, headers=get_auth_headers(profile.access_token))
     _validate_response(activity_response)
+    init_data['heart_rate_data'] = activity_response.json().get('activities-heart')
 
-    activity_response = activity_response.json()
-    if 'summary' in activity_response and 'heartRateZones' in activity_response['summary']:
-        summary = activity_response['summary']
+    def get_active_minutes(key): return reduce((lambda acc, r: int(r['value']) + acc), init_data[key], 0)
 
-        active_minutes = summary['fairlyActiveMinutes'] + summary['veryActiveMinutes']
+    def get_hr_minutes(key):
+        return reduce(
+            (lambda acc, r: int([i['minutes'] for i in r['value']['heartRateZones'] if i['name'] == key][0]) + acc),
+            init_data['heart_rate_data'], 0)
 
-        cardio_zone_minutes = [i['minutes'] for i in summary['heartRateZones'] if i['name'] == 'Cardio'][0]
-        peak_zone_minutes = [i['minutes'] for i in summary['heartRateZones'] if i['name'] == 'Peak'][0]
+    active_minutes = get_active_minutes('fairly_active_data') + get_active_minutes('very_active_data')
+    cardio_zone_minutes = get_hr_minutes('Cardio')
+    peak_zone_minutes = get_hr_minutes('Peak')
 
-        points = (point_system.active_minute_points * active_minutes) + \
-                 (point_system.cardio_zone_points * cardio_zone_minutes) + \
-                 (point_system.peak_zone_points * peak_zone_minutes)
+    init_data['points'] = (point_system.active_minute_points * active_minutes) + \
+                          (point_system.cardio_zone_points * cardio_zone_minutes) + \
+                          (point_system.peak_zone_points * peak_zone_minutes)
 
-        init_data['points'] = points
-        init_data['active_minutes'] = active_minutes
-        init_data['active_minute_factor'] = point_system.active_minute_points
-        init_data['cardio_zone_minutes'] = cardio_zone_minutes
-        init_data['cardio_zone_factor'] = point_system.cardio_zone_points
-        init_data['peak_zone_minutes'] = peak_zone_minutes
-        init_data['peak_zone_factor'] = point_system.peak_zone_points
+    init_data['active_minutes'] = active_minutes
+    init_data['cardio_zone_minutes'] = cardio_zone_minutes
+    init_data['peak_zone_minutes'] = peak_zone_minutes
+    init_data['active_minute_factor'] = point_system.active_minute_points
+    init_data['cardio_zone_factor'] = point_system.cardio_zone_points
+    init_data['peak_zone_factor'] = point_system.peak_zone_points
+
+    print(init_data)
 
     return init_data
 
@@ -234,7 +290,6 @@ def _send_auth_request(profile, data):
     _validate_response(response)
 
     json_response = response.json()
-
     profile.access_token = json_response['access_token']
     profile.refresh_token = json_response['refresh_token']
     profile.token_expiration = timezone.now() + timezone.timedelta(seconds=(json_response['expires_in']))

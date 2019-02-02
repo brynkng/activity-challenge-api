@@ -16,21 +16,21 @@ class PointSystem(models.Model):
 
 
 class Competition(models.Model):
-    DAILY = 'DL'
-    WEEKLY = 'WL'
-    MONTHLY = 'ML'
-
-    COMPETITION_TYPES = (
-        (DAILY, 'Daily'),
-        (WEEKLY, 'Weekly'),
-        (MONTHLY, 'Monthly'),
-    )
-
-    type = models.CharField(
-        max_length=2,
-        choices=COMPETITION_TYPES,
-        default=DAILY,
-    )
+    # DAILY = 'DL'
+    # WEEKLY = 'WL'
+    # MONTHLY = 'ML'
+    #
+    # COMPETITION_TYPES = (
+    #     (DAILY, 'Daily'),
+    #     (WEEKLY, 'Weekly'),
+    #     (MONTHLY, 'Monthly'),
+    # )
+    #
+    # type = models.CharField(
+    #     max_length=2,
+    #     choices=COMPETITION_TYPES,
+    #     default=DAILY,
+    # )
 
     start = models.DateField()
 
@@ -41,7 +41,7 @@ class Competition(models.Model):
     point_system = models.ForeignKey(PointSystem, on_delete=models.CASCADE, default=1)
 
     def has_ended(self):
-        return self.end < timezone.now().date()
+        return timezone.localdate() > self.end
 
     def __str__(self):
         return f"{self.name}"
@@ -54,6 +54,7 @@ class Profile(models.Model):
     refresh_token = models.CharField(max_length=500, blank=True)
     token_expiration = models.DateTimeField(blank=True, null=True)
     fitbit_user_id = models.CharField(max_length=50, blank=True)
+    display_name = models.CharField(max_length=30, blank=True)
 
     competitions = models.ManyToManyField(Competition, blank=True)
 

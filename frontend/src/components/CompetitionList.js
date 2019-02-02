@@ -9,15 +9,21 @@ import {
   getSimpleCompetitionList,
   updateCompetitionInvitation
 } from "../services/data_provider";
-import { withRouter } from "react-router";
+import { Redirect, withRouter } from "react-router";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import Divider from "@material-ui/core/Divider";
 
-const styles = theme => ({});
+const styles = theme => ({
+  divider: {
+    margin: "0.3em 0 2em 0"
+  }
+});
 
 class CompetitionList extends React.Component {
   state = {
     invitations: [],
-    competitions: null
+    competitions: null,
+    auth_url: null
   };
 
   componentDidMount() {
@@ -40,7 +46,8 @@ class CompetitionList extends React.Component {
             this.props.showError(r.data.errors);
           }
 
-          this.authRedirect(r.data.auth_url);
+          // this.authRedirect(r.data.auth_url);
+          this.setState({ auth_url: r.data.auth_url });
         }
       })
       .catch(r => {
@@ -50,7 +57,7 @@ class CompetitionList extends React.Component {
   };
 
   authRedirect = url => {
-    this.props.history.replace(`/fitbit_auth/?url=${encodeURIComponent(url)}`);
+    this.props.history.push(`/fitbit_auth/?url=${encodeURIComponent(url)}`);
   };
 
   handleAccept = id => {
@@ -74,9 +81,12 @@ class CompetitionList extends React.Component {
   };
 
   render_simple_competitions = (label, competitions) => {
+    const { classes } = this.props;
+
     return competitions.length > 0 ? (
       <>
-        <Typography variant="h5">{label}</Typography>
+        <Typography variant="h4">{label}</Typography>
+        <Divider className={classes.divider} />
         {competitions.map(c => (
           <CompetitionSimple key={c.id} competition={c} />
         ))}
@@ -95,10 +105,19 @@ class CompetitionList extends React.Component {
 
     return (
       <>
+        {this.state.auth_url ? (
+          <Redirect
+            to={{
+              pathname: "/fitbit_auth",
+              state: { auth_url: this.state.auth_url }
+            }}
+          />
+        ) : null}
+
         {this.state.competitions ? (
           <>
             {this.render_simple_competitions("Current", current_competitions)}
-            {this.render_simple_competitions("Past", past_competitions)}
+            {this.render_simple_competitions("Completed", past_competitions)}
 
             {current_competitions.length === 0 &&
             past_competitions.length === 0 ? (

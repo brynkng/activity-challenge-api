@@ -37,7 +37,14 @@ const CompetitionSimple = props => {
     >
       <Card className={classes.container}>
         <Typography variant="title">{props.competition.name}</Typography>
-        <Typography variant="display1">{props.competition.points}</Typography>
+        {!props.competition.current ? (
+          <Typography variant="h5">
+            {props.competition.winner.name} is the winner with{" "}
+            {props.competition.winner.points} points
+          </Typography>
+        ) : (
+          <Typography variant="display1">{props.competition.points}</Typography>
+        )}
       </Card>
     </Link>
   );

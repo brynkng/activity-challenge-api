@@ -106,12 +106,15 @@ class CompetitionDetail extends Component {
               />
             ))}
           </Grid>
-          <Grid item xs={12} md={5}>
-            <CompetitionInviter
-              competition={this.state.competition}
-              handleInvite={this.handleInvite}
-            />
-          </Grid>
+          {this.state.competition.current &&
+          this.state.competition.invitable_friends.length > 0 ? (
+            <Grid item xs={12} md={5}>
+              <CompetitionInviter
+                competition={this.state.competition}
+                handleInvite={this.handleInvite}
+              />
+            </Grid>
+          ) : null}
         </Grid>
       </>
     ) : (
