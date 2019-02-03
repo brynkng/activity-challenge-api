@@ -13,6 +13,7 @@ import {
 } from "../services/data_provider";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import WinnerDisplay from "./WinnerDisplay";
+import moment from "moment";
 
 const styles = theme => ({
   title: {
@@ -89,8 +90,11 @@ class CompetitionDetail extends Component {
             <ArrowBackIcon fontSize="large" />
           </Link>
           <Typography variant="display1" className={classes.title}>
-            {" "}
             {this.state.competition.name}
+          </Typography>
+          <Typography variant="h5">
+            {moment(this.state.competition.start).format("MMMM D")} -{" "}
+            {moment(this.state.competition.end).format("D")}
           </Typography>
         </header>
 
@@ -105,12 +109,8 @@ class CompetitionDetail extends Component {
           </Grid>
 
           {this.state.competition.competition_members.map(m => (
-            <Grid item xs={12} md={4}>
-              <PointDisplay
-                key={m.profile_id}
-                name={m.display_name}
-                point_details={m}
-              />
+            <Grid item xs={12} md={4} key={m.profile_id}>
+              <PointDisplay name={m.display_name} point_details={m} />
             </Grid>
           ))}
         </Grid>

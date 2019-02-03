@@ -44,7 +44,8 @@ def get_competition_friend_list(profile, competition):
     fitbit_ids = [f['user']['encodedId'] for f in friends_response]
 
     # TODO possibly clean this up just working with profile querysets? preload competitions and invitations?
-    id_tuples = Profile.objects.filter(fitbit_user_id__in=fitbit_ids).values_list('id', 'fitbit_user_id')
+    id_tuples = Profile.objects.filter(
+        fitbit_user_id__in=fitbit_ids).values_list('id', 'fitbit_user_id')
     profile_to_fitbit = {ids[0]: ids[1] for ids in id_tuples}
     fitbit_to_profile = {ids[1]: ids[0] for ids in id_tuples}
     in_competition = Profile.competitions.through.objects.filter(
@@ -56,7 +57,8 @@ def get_competition_friend_list(profile, competition):
         info = f['user']
         fitbit_id = info['encodedId']
         profile_id = fitbit_to_profile.get(fitbit_id, None)
-        invited = CompetitionInvitation.objects.filter(profile=profile_id, competition=competition.id).exists()
+        invited = CompetitionInvitation.objects.filter(
+            profile=profile_id, competition=competition.id).exists()
 
         return {
             'display_name': info['displayName'],
@@ -88,13 +90,14 @@ def _update_competition_scores(competition):
     scores = []
 
     for profile in competition.profile_set.all():
-        score = profile.competition_scores.filter(competition_id=competition.id).last()
+        score = profile.competition_scores.filter(
+            competition_id=competition.id).last()
 
         competition_end = datetime(competition.end.year, competition.end.month, competition.end.day, 23, 59, 59,
                                    tzinfo=pytz.UTC)
 
         score_out_of_date = score and ((competition.has_ended() and score.updated_at < competition_end) or (
-                not competition.has_ended() and score.updated_at + timezone.timedelta(minutes=10) < timezone.now()))
+            not competition.has_ended() and score.updated_at + timezone.timedelta(minutes=10) < timezone.now()))
 
         if not score:
             data = _retrieve_point_details(competition, {}, profile)
@@ -118,14 +121,10 @@ def _update_competition_scores(competition):
 def _build_simple_competition(profile, competition):
     scores = _update_competition_scores(competition)
     score = [score for score in scores if profile.id == score.profile.id][0]
+    data = _get_competition_data(competition, scores)
+    data['points'] = score.point_total
 
-    return {
-        'id': competition.id,
-        'name': competition.name,
-        'points': score.point_total,
-        'current': not competition.has_ended(),
-        'winner': _get_winner(competition, scores)
-    }
+    return data
 
 
 def _get_winner(competition, scores=None):
@@ -141,6 +140,17 @@ def _get_winner(competition, scores=None):
         return None
 
 
+def _get_competition_data(competition, scores=None):
+    return {
+        'id': competition.id,
+        'name': competition.name,
+        'start': competition.start,
+        'end': competition.end.strftime('%Y-%m-%d'),
+        'current': not competition.has_ended(),
+        'winner': _get_winner(competition, scores)
+    }
+
+
 def _build_detailed_competition(profile, competition):
     friend_list = get_competition_friend_list(profile, competition)
     profile_ids = [f['profile_id'] for f in friend_list]
@@ -153,18 +163,15 @@ def _build_detailed_competition(profile, competition):
         for f in friend_list if f['in_competition']
     ]
 
-    invitable_friends = [f for f in friend_list if f['in_app'] and not f['in_competition']]
+    invitable_friends = [
+        f for f in friend_list if f['in_app'] and not f['in_competition']]
 
-    return {
-        'id': competition.id,
-        'name': competition.name,
-        'point_details': _retrieve_point_details(competition, {}, profile),
-        'current': not competition.has_ended(),
-        'winner': _get_winner(competition),
-        'competition_members': competition_members,
-        'invitable_friends': invitable_friends
+    data = _get_competition_data(competition)
+    data['point_details'] = _retrieve_point_details(competition, {}, profile)
+    data['competition_members'] = competition_members
+    data['invitable_friends'] = invitable_friends
 
-    }
+    return data
 
 
 def _retrieve_point_details(competition, init_data, profile):
@@ -187,7 +194,8 @@ def _retrieve_point_details(competition, init_data, profile):
     _validate_response(activity_response)
     init_data['heart_rate_data'] = activity_response.json().get('activities-heart')
 
-    def get_active_minutes(key): return reduce((lambda acc, r: int(r['value']) + acc), init_data[key], 0)
+    def get_active_minutes(key): return reduce(
+        (lambda acc, r: int(r['value']) + acc), init_data[key], 0)
 
     def get_hr_minutes(key):
         return reduce(
@@ -281,13 +289,15 @@ def _send_auth_request(profile, data):
         'Authorization': f"Basic {encoded_auth_key}",
         'Content-Type': 'application/x-www-form-urlencoded'
     }
-    response = requests.post('https://api.fitbit.com/oauth2/token', headers=headers, data=data)
+    response = requests.post(
+        'https://api.fitbit.com/oauth2/token', headers=headers, data=data)
     _validate_response(response)
 
     json_response = response.json()
     profile.access_token = json_response['access_token']
     profile.refresh_token = json_response['refresh_token']
-    profile.token_expiration = timezone.now() + timezone.timedelta(seconds=(json_response['expires_in']))
+    profile.token_expiration = timezone.now(
+    ) + timezone.timedelta(seconds=(json_response['expires_in']))
     profile.fitbit_user_id = json_response['user_id']
     profile.save()
 
@@ -296,7 +306,8 @@ def _send_auth_request(profile, data):
 
 def _validate_response(response):
     json_response = response.json()
-    errors = ', '.join([e['message'] for e in response.json()['errors']]) if 'errors' in json_response else ''
+    errors = ', '.join([e['message'] for e in response.json()[
+                       'errors']]) if 'errors' in json_response else ''
 
     if response.status_code == 401:
         raise ApiAuthError(errors)

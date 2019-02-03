@@ -3,6 +3,7 @@ import { withStyles } from "@material-ui/core";
 import Typography from "@material-ui/core/es/Typography/Typography";
 import { Link } from "react-router-dom";
 import Card from "@material-ui/core/es/Card/Card";
+import moment from 'moment';
 
 const styles = theme => ({
   container: {
@@ -29,13 +30,24 @@ const CompetitionSimple = props => {
     >
       <Card className={classes.container}>
         <Typography variant="title">{props.competition.name}</Typography>
+
         {!props.competition.current ? (
-          <Typography variant="h5">
-            {props.competition.winner.name} is the winner with{" "}
-            {props.competition.winner.points} points
-          </Typography>
+          <>
+            <Typography variant="h5">
+              {props.competition.winner.name} is the winner with{" "}
+              {props.competition.winner.points} points
+            </Typography>
+            <Typography variant="h6">
+              Ended {moment(props.competition.end).format("MMMM Do")}
+            </Typography>
+          </>
         ) : (
-          <Typography variant="display1">{props.competition.points}</Typography>
+          <>
+            <Typography variant="display1">
+              {props.competition.points}
+            </Typography>
+            <Typography variant="h6">{moment(props.competition.start).format("MMMM D")} - {moment(props.competition.end).format('D')}</Typography>
+          </>
         )}
       </Card>
     </Link>
