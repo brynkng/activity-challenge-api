@@ -6,14 +6,14 @@ services:
       com.example.service: "web"
       com.example.description: "Use for the main web process"
     build:
-      context: ./activityChallengeApi/docker_compose/django/
+      context: .
       dockerfile: Dockerfile
       args:
         requirements: requirements/production.txt
     image: activity_challenge_api_django_web:1.0
     depends_on:
       - db
-    command: ["./activityChallengeApi/docker_compose/django/start.sh"]
+    command: ["./start.sh"]
     environment:
       PRODUCTION: 'true'
       PORT: 8000

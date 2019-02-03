@@ -11,14 +11,14 @@ from api.custom_errors import ApiAuthError, ApiError
 from api.models import Profile, CompetitionInvitation, CompetitionScore, Competition
 
 
-def store_fitbit_auth(code, server_host, profile):
+def store_fitbit_auth(code, url_start, profile):
     client_id = os.environ['FITBIT_CLIENT_ID']
 
     data = {
         'client_id': client_id,
         'code': code,
         'grant_type': 'authorization_code',
-        'redirect_uri': f"http://{server_host}/api/store_fitbit_auth",
+        'redirect_uri': f"{url_start}/api/store_fitbit_auth",
         'expires_in': 2592000
     }
 
@@ -146,17 +146,12 @@ def _build_detailed_competition(profile, competition):
     profile_ids = [f['profile_id'] for f in friend_list]
     profiles = Profile.objects.filter(id__in=profile_ids)
 
-    def _get_profile(id):
-        return [p for p in profiles if p.id == id][0]
+    def _get_profile(id): return [p for p in profiles if p.id == id][0]
 
     competition_members = [
-        _retrieve_point_details(competition, f, profile)
+        _retrieve_point_details(competition, f, _get_profile(f['profile_id']))
         for f in friend_list if f['in_competition']
     ]
-    # competition_members = [
-    #     _add_point_details(competition, f, _get_profile(f['profile_id']))
-    #     for f in friend_list if f['in_competition']
-    # ]
 
     invitable_friends = [f for f in friend_list if f['in_app'] and not f['in_competition']]
 
@@ -177,10 +172,9 @@ def _retrieve_point_details(competition, init_data, profile):
 
     start = competition.start.strftime('%Y-%m-%d')
     end = competition.end.strftime('%Y-%m-%d')
-    # url = f"/1/user/{profile.fitbit_user_id}/activities/tracker/minutesFairlyActive/date/{start}/{end}.json"
 
     def retrieve_activity_data(key):
-        url = f"https://api.fitbit.com/1/user/-/activities/tracker/{key}/date/{start}/{end}.json"
+        url = f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/tracker/{key}/date/{start}/{end}.json"
         activity_response = requests.get(url, headers=get_auth_headers(profile.access_token))
         _validate_response(activity_response)
         return activity_response.json().get(f"activities-tracker-{key}")
@@ -188,7 +182,7 @@ def _retrieve_point_details(competition, init_data, profile):
     init_data['fairly_active_data'] = retrieve_activity_data('minutesFairlyActive')
     init_data['very_active_data'] = retrieve_activity_data('minutesVeryActive')
 
-    url = f"https://api.fitbit.com/1/user/-/activities/heart/date/{start}/{end}.json"
+    url = f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/heart/date/{start}/{end}.json"
     activity_response = requests.get(url, headers=get_auth_headers(profile.access_token))
     _validate_response(activity_response)
     init_data['heart_rate_data'] = activity_response.json().get('activities-heart')
@@ -197,7 +191,8 @@ def _retrieve_point_details(competition, init_data, profile):
 
     def get_hr_minutes(key):
         return reduce(
-            (lambda acc, r: int([i['minutes'] for i in r['value']['heartRateZones'] if i['name'] == key][0]) + acc),
+            (lambda acc, r: int(
+                [i.get('minutes', 0) for i in r['value']['heartRateZones'] if i['name'] == key][0]) + acc),
             init_data['heart_rate_data'], 0)
 
     active_minutes = get_active_minutes('fairly_active_data') + get_active_minutes('very_active_data')
@@ -220,9 +215,9 @@ def _retrieve_point_details(competition, init_data, profile):
     return init_data
 
 
-def get_detailed_competition(profile, server_host, competition_id):
+def get_detailed_competition(profile, url_start, competition_id):
     competition = Competition.objects.filter(id=competition_id).last()
-    data = validate_fitbit_access(profile, server_host)
+    data = validate_fitbit_access(profile, url_start)
 
     if data.get('authorized'):
         data['data'] = _build_detailed_competition(profile, competition)
@@ -230,8 +225,8 @@ def get_detailed_competition(profile, server_host, competition_id):
     return data
 
 
-def get_simple_competitions_list(profile, server_host):
-    data = validate_fitbit_access(profile, server_host)
+def get_simple_competitions_list(profile, url_start):
+    data = validate_fitbit_access(profile, url_start)
 
     if data.get('authorized'):
         data['data'] = _build_simple_competitions_data(profile)
@@ -239,7 +234,7 @@ def get_simple_competitions_list(profile, server_host):
     return data
 
 
-def validate_fitbit_access(profile, server_host):
+def validate_fitbit_access(profile, url_start):
     token_expiration = profile.token_expiration
     access_token = profile.access_token
     authorized = bool(access_token)
@@ -251,21 +246,21 @@ def validate_fitbit_access(profile, server_host):
             authorized = _refresh_token(profile)
 
         if not authorized:
-            data['auth_url'] = _auth_url(server_host)
+            data['auth_url'] = _auth_url(url_start)
 
     except ApiAuthError:
         traceback.print_exc()
         data['errors'] = 'Fitbit auth error. Please re-authenticate.'
-        data['auth_url'] = _auth_url(server_host)
+        data['auth_url'] = _auth_url(url_start)
         data['authorized'] = False
 
     return data
 
 
-def _auth_url(server_host):
+def _auth_url(url_start):
     client_id = os.environ['FITBIT_CLIENT_ID']
     return f"https://www.fitbit.com/oauth2/authorize?response_type=code&client_id={client_id}&redirect_uri=" \
-        f"http://{server_host}/api/store_fitbit_auth&scope=activity%20heartrate%20profile%20social"
+        f"{url_start}/api/store_fitbit_auth&scope=activity%20heartrate%20profile%20social"
 
 
 def _refresh_token(profile):

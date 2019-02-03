@@ -65,7 +65,7 @@ class CompetitionList extends React.Component {
 
     updateCompetitionInvitation(id, true).then(r => {
       this.props.showSuccess("Invitation accepted!");
-      this.props.refreshCompetitions();
+      this.refreshCompetitions();
     });
   };
 

@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED 1
 # update package lists, fix broken system packages
 RUN apt-get update
 RUN apt-get -f install
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 ARG requirements=requirements/production.txt
 
@@ -14,17 +15,8 @@ ADD requirements/ /tmp/requirements
 RUN pip3 install -r /tmp/$requirements
 
 # load project files and set work directory
-ADD . /app/
+COPY . /app/
 WORKDIR /app
 
-# create user and add to docker group
-# RUN adduser --disabled-password --gecos '' activitychallenge
-# RUN groupadd docker
-# RUN usermod -aG docker activitychallenge
-
-# # grant newly created user permissions on essential files
-# RUN chown -R activitychallenge:$(id -gn activitychallenge) ~/
-# RUN chown -R activitychallenge:$(id -gn activitychallenge) /app/
-
-# # change user to newly created user
-# USER activitychallenge
+COPY start.sh /start.sh
+CMD ["/start.sh"]

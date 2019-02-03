@@ -30,6 +30,7 @@ build-dev:
 activity_challenge_api_django_web:1.0
 
 deploy:
+	npm run build && \
 	make build-prod && \
 	docker tag activity_challenge_api_django_web:1.0 registry.heroku.com/activity-challenge-api/web && \
 	docker push registry.heroku.com/activity-challenge-api/web:latest && \

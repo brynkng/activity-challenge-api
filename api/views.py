@@ -103,7 +103,7 @@ class LogoutUser(generics.GenericAPIView):
 @permission_classes((IsAuthenticated,))
 def fitbit_store_auth(request):
     try:
-        store_fitbit_auth(request.GET.get('code'), request.get_host(), request.user.profile)
+        store_fitbit_auth(request.GET.get('code'), _get_url_start(request), request.user.profile)
     except ApiError:
         traceback.print_exc()
 
@@ -114,7 +114,7 @@ def fitbit_store_auth(request):
 @permission_classes((IsAuthenticated,))
 def simple_competitions_list(request):
     try:
-        r = get_simple_competitions_list(request.user.profile, request.get_host())
+        r = get_simple_competitions_list(request.user.profile, _get_url_start(request))
         return Response(r)
     except ApiError as error:
         traceback.print_exc()
@@ -126,6 +126,12 @@ def simple_competitions_list(request):
 # TODO add perms for competition detail viewing
 def competition_details(request, competition_id):
     try:
-        return Response(get_detailed_competition(request.user.profile, request.get_host(), competition_id))
+        return Response(get_detailed_competition(request.user.profile, _get_url_start(request), competition_id))
     except ObjectDoesNotExist:
         return Response(f"Competition {competition_id} not found", status=status.HTTP_404_NOT_FOUND)
+
+
+def _get_url_start(request):
+    protocol = 'https://' if request.is_secure() else 'http://'
+    return protocol + request.get_host()
+
