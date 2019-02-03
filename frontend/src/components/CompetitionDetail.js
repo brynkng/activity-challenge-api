@@ -77,6 +77,10 @@ class CompetitionDetail extends Component {
 
   render() {
     const { classes } = this.props;
+    const invitable_friends =
+      this.state.competition &&
+      this.state.competition.current &&
+      this.state.competition.invitable_friends.length > 0;
 
     return this.state.competition ? (
       <>
@@ -92,30 +96,34 @@ class CompetitionDetail extends Component {
 
         <WinnerDisplay competition={this.state.competition} />
 
-        <Grid container spacing={24} className={classes.container}>
-          <Grid item xs={12} md={7}>
+        <Grid container spacing={24} justify="center">
+          <Grid item xs={12} md={4}>
             <PointDisplay
               name={"Me"}
               point_details={this.state.competition.point_details}
             />
-            {this.state.competition.competition_members.map(m => (
+          </Grid>
+
+          {this.state.competition.competition_members.map(m => (
+            <Grid item xs={12} md={4}>
               <PointDisplay
                 key={m.profile_id}
                 name={m.display_name}
                 point_details={m}
               />
-            ))}
-          </Grid>
-          {this.state.competition.current &&
-          this.state.competition.invitable_friends.length > 0 ? (
-            <Grid item xs={12} md={5}>
+            </Grid>
+          ))}
+        </Grid>
+        {invitable_friends ? (
+          <Grid container spacing={24} justify="center">
+            <Grid item xs={12} md={6}>
               <CompetitionInviter
                 competition={this.state.competition}
                 handleInvite={this.handleInvite}
               />
             </Grid>
-          ) : null}
-        </Grid>
+          </Grid>
+        ) : null}
       </>
     ) : (
       <CircularProgress />

@@ -29,6 +29,9 @@ build-dev:
 
 activity_challenge_api_django_web:1.0
 
+prod-shell:
+	heroku run python manage.py shell
+
 deploy:
 	npm run build && \
 	make build-prod && \

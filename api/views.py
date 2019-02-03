@@ -1,4 +1,5 @@
 import traceback
+import os
 
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.decorators import api_view, permission_classes
@@ -114,7 +115,8 @@ def fitbit_store_auth(request):
 @permission_classes((IsAuthenticated,))
 def simple_competitions_list(request):
     try:
-        r = get_simple_competitions_list(request.user.profile, _get_url_start(request))
+        r = get_simple_competitions_list(
+            request.user.profile, _get_url_start(request))
         return Response(r)
     except ApiError as error:
         traceback.print_exc()
@@ -132,6 +134,8 @@ def competition_details(request, competition_id):
 
 
 def _get_url_start(request):
-    protocol = 'https://' if request.is_secure() else 'http://'
-    return protocol + request.get_host()
+    protocol = 'https://' if os.environ.get('PRODUCTION', False) == 'true' else 'http://'
+    url_start = protocol + request.get_host()
+    print(f"Using url start: {url_start}")
 
+    return url_start

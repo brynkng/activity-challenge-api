@@ -11,7 +11,9 @@ class Dashboard extends React.Component {
     let state = this.props.history.location.state;
     if (state && state.auth_url) {
       window.location = state.auth_url;
-    } else window.location = "/";
+    } else {
+      this.props.showError("Error accessing auth url");
+    }
   };
 
   render() {

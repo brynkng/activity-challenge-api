@@ -3,8 +3,8 @@ import { withStyles } from "@material-ui/core";
 import CompetitionSimple from "./CompetitionSimple";
 import Typography from "@material-ui/core/es/Typography/Typography";
 import CompetitionInvitation from "./CompetitionInvitation";
+import Grid from "@material-ui/core/Grid";
 import {
-  createCompetitionInvitation,
   getCompetitionInvitations,
   getSimpleCompetitionList,
   updateCompetitionInvitation
@@ -16,6 +16,9 @@ import Divider from "@material-ui/core/Divider";
 const styles = theme => ({
   divider: {
     margin: "0.3em 0 2em 0"
+  },
+  completed: {
+    marginTop: "1em"
   }
 });
 
@@ -46,7 +49,6 @@ class CompetitionList extends React.Component {
             this.props.showError(r.data.errors);
           }
 
-          // this.authRedirect(r.data.auth_url);
           this.setState({ auth_url: r.data.auth_url });
         }
       })
@@ -54,10 +56,6 @@ class CompetitionList extends React.Component {
         this.props.showError("Server error. Please contact developer.");
         console.log(r.data);
       });
-  };
-
-  authRedirect = url => {
-    this.props.history.push(`/fitbit_auth/?url=${encodeURIComponent(url)}`);
   };
 
   handleAccept = id => {
@@ -80,23 +78,30 @@ class CompetitionList extends React.Component {
     this.setState({ invitations: updated });
   };
 
-  render_simple_competitions = (label, competitions) => {
+  render_simple_competitions = (label, competitions, container_class = "") => {
     const { classes } = this.props;
 
     return competitions.length > 0 ? (
-      <>
+      <div className={container_class}>
         <Typography variant="h4">{label}</Typography>
         <Divider className={classes.divider} />
-        {competitions.map(c => (
-          <CompetitionSimple key={c.id} competition={c} />
-        ))}
-      </>
+
+        <Grid container spacing={24} justify="center">
+          {competitions.map(c => (
+            <Grid item xs={12} md={4}>
+              <CompetitionSimple key={c.id} competition={c} />
+            </Grid>
+          ))}
+        </Grid>
+      </div>
     ) : null;
   };
 
   render() {
     let current_competitions,
       past_competitions = [];
+
+    const { classes } = this.props;
 
     if (this.state.competitions) {
       current_competitions = this.state.competitions.filter(c => c.current);
@@ -117,7 +122,11 @@ class CompetitionList extends React.Component {
         {this.state.competitions ? (
           <>
             {this.render_simple_competitions("Current", current_competitions)}
-            {this.render_simple_competitions("Completed", past_competitions)}
+            {this.render_simple_competitions(
+              "Completed",
+              past_competitions,
+              classes.completed
+            )}
 
             {current_competitions.length === 0 &&
             past_competitions.length === 0 ? (

@@ -10,20 +10,12 @@ const styles = theme => ({
     padding: "1em",
     cursor: "pointer",
     "&:hover": { background: "#eee" },
-    transition: ".3s background",
-    [theme.breakpoints.up("sm")]: {
-      flexGrow: ".33",
-      flexBasis: "0"
-    }
+    transition: ".3s background"
   },
   titleLink: {
     color: "inherit",
     textDecoration: "none",
-    "&:hover": { color: "inherit" },
-    [theme.breakpoints.up("sm")]: {
-      display: "flex",
-      justifyContent: "center"
-    }
+    "&:hover": { color: "inherit" }
   }
 });
 
