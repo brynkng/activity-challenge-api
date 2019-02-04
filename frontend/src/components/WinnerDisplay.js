@@ -12,6 +12,8 @@ const styles = theme => ({
 });
 const WinnerDisplay = props => {
   const { classes } = props;
+  
+  if (!props.winner) return null 
 
   const text = (
     <span>
