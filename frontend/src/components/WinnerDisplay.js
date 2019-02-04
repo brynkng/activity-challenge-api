@@ -13,33 +13,19 @@ const styles = theme => ({
 const WinnerDisplay = props => {
   const { classes } = props;
 
-  const calculateWinner = () => {
-    let my_point_details = {
-      display_name: "Me",
-      ...props.competition.point_details
-    };
+  const text = (
+    <span>
+      {props.winner.name} is the winner with {props.winner.points} points
+    </span>
+  );
 
-    let all_point_details = [
-      my_point_details,
-      ...props.competition.competition_members
-    ];
-
-    return all_point_details.sort((a, b) => a.points - b.points)[0];
-  };
-
-  let winner =
-    props.competition && !props.competition.current ? calculateWinner() : null;
-
-  return winner ? (
+  return props.large ? (
     <Card className={classes.winner}>
-      <Typography variant="h4">
-        {winner.display_name === "Me"
-          ? "You are the winner "
-          : `${winner.display_name} is the winner `}
-        with {winner.points} points!
-      </Typography>
+      <Typography variant="h4">{text}</Typography>
     </Card>
-  ) : null;
+  ) : (
+    <Typography variant="h5">{text}</Typography>
+  );
 };
 
 export default withStyles(styles)(WinnerDisplay);

@@ -98,7 +98,7 @@ class CompetitionDetail extends Component {
           </Typography>
         </header>
 
-        <WinnerDisplay competition={this.state.competition} />
+        <WinnerDisplay winner={this.state.competition.winner} large />
 
         <Grid container spacing={24} justify="center">
           <Grid item xs={12} md={4}>

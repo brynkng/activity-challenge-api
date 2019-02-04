@@ -4,6 +4,7 @@ import Typography from "@material-ui/core/es/Typography/Typography";
 import { Link } from "react-router-dom";
 import Card from "@material-ui/core/es/Card/Card";
 import moment from 'moment';
+import WinnerDisplay from "./WinnerDisplay";
 
 const styles = theme => ({
   container: {
@@ -33,10 +34,7 @@ const CompetitionSimple = props => {
 
         {!props.competition.current ? (
           <>
-            <Typography variant="h5">
-              {props.competition.winner.name} is the winner with{" "}
-              {props.competition.winner.points} points
-            </Typography>
+            <WinnerDisplay winner={props.competition.winner}/>
             <Typography variant="h6">
               Ended {moment(props.competition.end).format("MMMM Do")}
             </Typography>
