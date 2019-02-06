@@ -1,11 +1,6 @@
 ## About
 
-This exercise involves improving a fictional subset of a Ruby on Rails 5.x application.
-
-You should assume the technology stack used for this code includes:
-* Ruby on Rails 5.x
-* Ruby 2.3.x
-* PostgreSQL Database
+This is a web based alternative competition site using Fitbit's data.  
 
 ## Installation
 
