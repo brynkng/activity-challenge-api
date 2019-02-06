@@ -6,7 +6,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
 from api.custom_errors import ApiError, ApiAuthError
-from api.services.fitbit_api import get_simple_competitions_list, get_detailed_competition
 from .models import CompetitionInvitation, Competition
 from api.serializers import LoginSerializer, CompetitionInvitationSerializer, CompetitionInvitationListSerializer, \
     CompetitionSerializer
@@ -112,8 +111,8 @@ def fitbit_store_auth(request):
         provider.store_fitbit_auth(request.GET.get(
             'code'), _get_url_start(request), request.user.profile)
     except (ApiError, ApiAuthError):
-        return redirect('/#/?error=Error during fitbit auth')
         traceback.print_exc()
+        return redirect('/#/?error=Error during fitbit auth')
 
     return redirect('/#')
 
@@ -126,11 +125,11 @@ def simple_competitions_list(request):
         provider = CompetitionProvider(profile)
         data = provider.simple_competitions(profile)
         return _successful_response(data)
+    except ApiAuthError:
+        return _api_auth_error_response(request)
     except ApiError as error:
         traceback.print_exc()
         return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
-    except ApiAuthError:
-        return _api_auth_error_response(request)
 
 
 @api_view(['GET'])
@@ -144,11 +143,12 @@ def competition_details(request, competition_id):
         return _successful_response(data)
     except ObjectDoesNotExist:
         return Response(f"Competition {competition_id} not found", status=status.HTTP_404_NOT_FOUND)
+    except ApiAuthError:
+        return _api_auth_error_response(request)
     except ApiError as error:
         traceback.print_exc()
         return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
-    except ApiAuthError:
-        return _api_auth_error_response(request)
+
 
 def _successful_response(data):
     return Response({'data': data, 'authorized': True})
@@ -165,6 +165,7 @@ def _get_url_start(request):
 
 def _auth_url(request):
     return FitbitApiGateway.auth_url(_get_url_start(request))
+
 
 def _api_auth_error_response(request):
     return Response({

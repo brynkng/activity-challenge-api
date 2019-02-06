@@ -30,7 +30,7 @@ class FitbitApiGateway:
 
         return response.json()
 
-    def get_profile(self):
+    def get_profile(self, profile):
         response = requests.get('https://api.fitbit.com/1/user/-/profile.json',
                                 headers=self.__get_auth_headers(profile.access_token))
         self.__validate_response(response)
@@ -39,7 +39,7 @@ class FitbitApiGateway:
 
     def get_friends(self, profile):
         response = requests.get('https://api.fitbit.com/1/user/-/friends.json',
-                                headers=get_auth_headers(profile.access_token))
+                                headers=self.__get_auth_headers(profile.access_token))
         self.__validate_response(response)
 
         return response.json().get('friends', [])
@@ -49,14 +49,14 @@ class FitbitApiGateway:
         activity_response = requests.get(url, headers=self.__get_auth_headers(profile.access_token))
         self.__validate_response(activity_response)
         
-        return activity_response.json()
+        return activity_response.json().get('activities-heart')
 
     def get_activities_data(self, profile, start, end, key):
         url = f"https://api.fitbit.com/1/user/{profile.fitbit_user_id}/activities/tracker/{key}/date/{start}/{end}.json"
         activity_response = requests.get(url, headers=self.__get_auth_headers(profile.access_token))
         self.__validate_response(activity_response)
         
-        return activity_response.json().get('activities-heart')
+        return activity_response.json().get('activities-tracker-' + key)
 
     def __validate_response(self, response):
         json_response = response.json()
@@ -83,7 +83,10 @@ class FitbitApiGateway:
     def __validate_api_access(self, profile):
         token_expiration = profile.token_expiration
         access_token = profile.access_token
-        authorized = bool(access_token)
+
+        if not access_token:
+            raise ApiAuthError("No access token!")
+
         expired = token_expiration and token_expiration < timezone.now()
 
         if expired:

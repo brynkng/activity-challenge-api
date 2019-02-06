@@ -1,28 +1,23 @@
 from api.services.fitbit_provider import FitbitProvider
-import os
-import traceback
 import pytz
 from django.utils import timezone
-from api.custom_errors import ApiAuthError, ApiError
 from api.models import Profile, CompetitionInvitation, CompetitionScore, Competition
-from datetime import datetime, time
+from datetime import datetime
 from .point_calculator import PointCalculator
+
 
 class CompetitionProvider(FitbitProvider):
     def simple_competitions(self, profile):
         return self.__build_simple_competitions_data(profile)
 
-
-    def detailed_competition(profile, competition_id):
+    def detailed_competition(self, profile, competition_id):
         competition = Competition.objects.filter(id=competition_id).last()
 
         return self.__build_detailed_competition(profile, competition)
 
-
     def __build_simple_competitions_data(self, profile):
         return {'competitions': [self.__build_simple_competition(profile, competition) for competition in
-                                profile.competitions.all()]}
-
+                                 profile.competitions.all()]}
 
     def __update_competition_scores(self, competition):
         scores = []
@@ -32,10 +27,10 @@ class CompetitionProvider(FitbitProvider):
                 competition_id=competition.id).last()
 
             competition_end = datetime(competition.end.year, competition.end.month, competition.end.day, 23, 59, 59,
-                                    tzinfo=pytz.UTC)
+                                       tzinfo=pytz.UTC)
 
             score_out_of_date = score and ((competition.has_ended() and score.updated_at < competition_end) or (
-                not competition.has_ended() and score.updated_at + timezone.timedelta(minutes=10) < timezone.now()))
+                    not competition.has_ended() and score.updated_at + timezone.timedelta(minutes=10) < timezone.now()))
 
             if not score:
                 data = PointCalculator(self.gateway).calculate(competition, {}, profile)
@@ -55,7 +50,6 @@ class CompetitionProvider(FitbitProvider):
 
         return scores
 
-
     def __build_simple_competition(self, profile, competition):
         scores = self.__update_competition_scores(competition)
         score = [score for score in scores if profile.id == score.profile.id][0]
@@ -64,11 +58,10 @@ class CompetitionProvider(FitbitProvider):
 
         return data
 
-
     def __get_winner(self, competition, scores=None):
         if competition.has_ended():
             if not scores:
-                scores = _update_competition_scores(competition)
+                scores = self.__update_competition_scores(competition)
 
             scores.sort(key=lambda s: s.point_total)
             winner = scores[-1]
@@ -76,7 +69,6 @@ class CompetitionProvider(FitbitProvider):
             return {'name': winner.profile.display_name, 'points': winner.point_total}
         else:
             return None
-
 
     def __base_competition_data(self, competition, scores=None):
         return {
@@ -88,8 +80,8 @@ class CompetitionProvider(FitbitProvider):
             'winner': self.__get_winner(competition, scores)
         }
 
-    def __competition_friend_list(profile, competition):
-        friends_response = get_friends(profile)
+    def __competition_friend_list(self, profile, competition):
+        friends_response = self.gateway.get_friends(profile)
         fitbit_ids = [f['user']['encodedId'] for f in friends_response]
 
         # TODO possibly clean this up just working with profile querysets? preload competitions and invitations?
@@ -120,7 +112,6 @@ class CompetitionProvider(FitbitProvider):
             }
 
         return list(map(_build_friend_list, friends_response))
-
 
     def __build_detailed_competition(self, profile, competition):
         friend_list = self.__competition_friend_list(profile, competition)

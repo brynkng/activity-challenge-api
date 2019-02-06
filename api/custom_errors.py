@@ -3,7 +3,7 @@ class ApiError(BaseException):
         super().__init__(message)
 
 
-class ApiAuthError(ApiError):
+class ApiAuthError(BaseException):
     def __init__(self, message):
         super().__init__(message)
 

@@ -26,11 +26,10 @@ class PointCalculator:
             'minutesVeryActive'
         )
 
-        init_data['heart_rate_data'] = self.gateway.get_heart_data(
-            start, end, profile)
+        init_data['heart_rate_data'] = self.gateway.get_heart_data(start, end, profile)
 
-        active_minutes = (self.__get_active_minutes('fairly_active_data', init_data) +
-                          self.__get_active_minutes('very_active_data', init_data))
+        active_minutes = (self.__get_active_minutes(init_data['fairly_active_data']) +
+                          self.__get_active_minutes(init_data['very_active_data']))
 
         cardio_zone_minutes = self.__get_hr_minutes('Cardio', init_data)
         peak_zone_minutes = self.__get_hr_minutes('Peak', init_data)
@@ -46,15 +45,13 @@ class PointCalculator:
         init_data['cardio_zone_factor'] = point_system.cardio_zone_points
         init_data['peak_zone_factor'] = point_system.peak_zone_points
 
-        print(init_data)
-
         return init_data
 
     def __retrieve_activity_data(self, profile, start, end, key):
         return self.gateway.get_activities_data(profile, start, end, key)
 
-    def __get_active_minutes(self, key, init_data):
-        return reduce((lambda acc, r: int(r['value']) + acc), init_data[key], 0)
+    def __get_active_minutes(self, data):
+        return reduce((lambda acc, r: int(r['value']) + acc), data, 0)
 
     def __get_hr_minutes(self, key, init_data):
         return reduce(

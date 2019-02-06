@@ -1,5 +1,6 @@
 import os
 from .fitbit_provider import FitbitProvider
+from django.utils import timezone
 
 
 class AuthProvider(FitbitProvider):
@@ -31,7 +32,7 @@ class AuthProvider(FitbitProvider):
 
         self.__save_display_name(profile)
 
-    def __save_display_name(profile):
-        response = self.gateway.get_profile()
+    def __save_display_name(self, profile):
+        response = self.gateway.get_profile(profile)
         profile.display_name = response['user']['displayName']
         profile.save()
