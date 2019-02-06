@@ -39,6 +39,7 @@
     "cookies-js": "^1.2.3",
     "moment": "^2.23.0",
     "momentjs": "^2.0.0",
+    "query-string": "^6.2.0",
     "react-cookie": "^3.0.8",
     "react-router": "^4.3.1",
     "react-router-dom": "^4.3.1"

@@ -5,8 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from api.custom_errors import ApiError
-from api.services.fitbit_api import store_fitbit_auth, get_simple_competitions_list, get_detailed_competition
+from api.custom_errors import ApiError, ApiAuthError
+from api.services.fitbit_api import get_simple_competitions_list, get_detailed_competition
 from .models import CompetitionInvitation, Competition
 from api.serializers import LoginSerializer, CompetitionInvitationSerializer, CompetitionInvitationListSerializer, \
     CompetitionSerializer
@@ -16,6 +16,9 @@ from rest_framework import permissions
 from .serializers import UserSerializer
 from rest_framework.response import Response
 from django.shortcuts import redirect
+from api.services.auth_provider import AuthProvider
+from api.services.fitbit_api_gateway import FitbitApiGateway
+from api.services.competition_provider import CompetitionProvider
 
 
 class CompetitionCreate(generics.CreateAPIView):
@@ -49,7 +52,8 @@ class CompetitionInvitationCreate(generics.ListCreateAPIView):
         return self.create(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        self.queryset = CompetitionInvitation.objects.filter(profile=request.user.profile, accepted__isnull=True)
+        self.queryset = CompetitionInvitation.objects.filter(
+            profile=request.user.profile, accepted__isnull=True)
         self.serializer = self.get_serializer(data=self.request.data,
                                               context={'request': request})
         return Response({
@@ -104,8 +108,11 @@ class LogoutUser(generics.GenericAPIView):
 @permission_classes((IsAuthenticated,))
 def fitbit_store_auth(request):
     try:
-        store_fitbit_auth(request.GET.get('code'), _get_url_start(request), request.user.profile)
-    except ApiError:
+        provider = AuthProvider(request.user.profile)
+        provider.store_fitbit_auth(request.GET.get(
+            'code'), _get_url_start(request), request.user.profile)
+    except (ApiError, ApiAuthError):
+        return redirect('/#/?error=Error during fitbit auth')
         traceback.print_exc()
 
     return redirect('/#')
@@ -115,12 +122,15 @@ def fitbit_store_auth(request):
 @permission_classes((IsAuthenticated,))
 def simple_competitions_list(request):
     try:
-        r = get_simple_competitions_list(
-            request.user.profile, _get_url_start(request))
-        return Response(r)
+        profile = request.user.profile
+        provider = CompetitionProvider(profile)
+        data = provider.simple_competitions(profile)
+        return _successful_response(data)
     except ApiError as error:
         traceback.print_exc()
         return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+    except ApiAuthError:
+        return _api_auth_error_response(request)
 
 
 @api_view(['GET'])
@@ -128,14 +138,36 @@ def simple_competitions_list(request):
 # TODO add perms for competition detail viewing
 def competition_details(request, competition_id):
     try:
-        return Response(get_detailed_competition(request.user.profile, _get_url_start(request), competition_id))
+        profile = request.user.profile
+        provider = CompetitionProvider(profile)
+        data = provider.detailed_competition(profile, competition_id)
+        return _successful_response(data)
     except ObjectDoesNotExist:
         return Response(f"Competition {competition_id} not found", status=status.HTTP_404_NOT_FOUND)
+    except ApiError as error:
+        traceback.print_exc()
+        return Response(str(error), status=status.HTTP_400_BAD_REQUEST)
+    except ApiAuthError:
+        return _api_auth_error_response(request)
+
+def _successful_response(data):
+    return Response({'data': data, 'authorized': True})
 
 
 def _get_url_start(request):
-    protocol = 'https://' if os.environ.get('PRODUCTION', False) == 'true' else 'http://'
+    protocol = 'https://' if os.environ.get(
+        'PRODUCTION', False) == 'true' else 'http://'
     url_start = protocol + request.get_host()
     print(f"Using url start: {url_start}")
 
     return url_start
+
+
+def _auth_url(request):
+    return FitbitApiGateway.auth_url(_get_url_start(request))
+
+def _api_auth_error_response(request):
+    return Response({
+        'authorized': False,
+        'auth_url': _auth_url(request)
+    })

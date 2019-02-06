@@ -9,6 +9,7 @@ import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import { loggedIn, logOut } from "../services/auth_api";
 import Dashboard from "./Dashboard";
+import * as qs from "query-string";
 
 const styles = theme => ({
   root: {
@@ -35,6 +36,11 @@ class Layout extends React.Component {
   componentDidMount() {
     if (!this.state.loggedIn && loggedIn()) {
       this.setState({ loggedIn: true });
+    }
+
+    const params = qs.parse(this.props.location.search);
+    if (params.errors) {
+      this.showError(params.errors);
     }
   }
 
